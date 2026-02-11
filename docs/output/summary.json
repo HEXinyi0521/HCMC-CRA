@@ -1,0 +1,24 @@
+{
+  "total_grid_cells": 96,
+  "flood_distribution": {
+    "no_flood": 1227,
+    "low": 17660,
+    "medium": 4598,
+    "high": 2685,
+    "very_high": 13428
+  },
+  "water_distance_stats": {
+    "mean_flood_by_distance": {
+      "0-500m": 37.23529411764706,
+      "500-1000m": 37.911764705882355,
+      "1-5km": 46.07142857142857,
+      ">5km": NaN
+    },
+    "cell_count_by_distance": {
+      "0-500m": 34,
+      "500-1000m": 34,
+      "1-5km": 28,
+      ">5km": 0
+    }
+  }
+}

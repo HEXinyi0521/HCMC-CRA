@@ -1,0 +1,57 @@
+{
+  "mapbox_token": "YOUR_MAPBOX_TOKEN",
+  "center": [
+    106.6917,
+    10.7769
+  ],
+  "zoom": 11,
+  "layers": [
+    {
+      "id": "flood-low",
+      "name": "Low Frequency (1-20)",
+      "source": "flood_low.geojson",
+      "color": "#dce9f5"
+    },
+    {
+      "id": "flood-medium",
+      "name": "Medium Frequency (21-40)",
+      "source": "flood_medium.geojson",
+      "color": "#a3c9e8"
+    },
+    {
+      "id": "flood-high",
+      "name": "High Frequency (41-60)",
+      "source": "flood_high.geojson",
+      "color": "#5fa3d2"
+    },
+    {
+      "id": "flood-very_high",
+      "name": "Very High Frequency (61+)",
+      "source": "flood_very_high.geojson",
+      "color": "#1a3a5c"
+    },
+    {
+      "id": "flood-water-dist",
+      "name": "Distance to Water",
+      "source": "flood_analysis_grid.geojson",
+      "type": "grid",
+      "property": "dist_category"
+    }
+  ],
+  "statistics": {
+    "water_distance": {
+      "mean": {
+        "0-500m": 36.27777777777778,
+        "500-1000m": 44.38235294117647,
+        "1-5km": 49.35849056603774,
+        ">5km": 65.87226277372262
+      },
+      "count": {
+        "0-500m": 36,
+        "500-1000m": 34,
+        "1-5km": 53,
+        ">5km": 274
+      }
+    }
+  }
+}
