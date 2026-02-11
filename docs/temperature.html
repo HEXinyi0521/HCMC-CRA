@@ -1,0 +1,1237 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>HCMC · Surface Temperature</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <link href="https://api.tiles.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
+
+  <script src="https://unpkg.com/intersection-observer@0.12.0/intersection-observer.js"></script>
+  <script src="https://unpkg.com/scrollama"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#0a0a0a;
+      --ink:#f5f5f5;
+      --muted:#a1a1aa;
+      --line:#27272a;
+      --soft:#18181b;
+      --accent:#f97316;
+      --max:1400px;
+      --navH:56px;
+      --cardR:4px;
+      --shadow:0 20px 60px rgba(0,0,0,.6);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:"Inter", -apple-system, system-ui, sans-serif;
+      color:var(--ink);
+      background:var(--bg);
+      -webkit-font-smoothing:antialiased;
+      overflow-x:hidden;
+      padding-top:var(--navH);
+    }
+    a{color:inherit;text-decoration:none}
+
+    /* ===== Topnav ===== */
+    .topnav{
+      position:fixed;
+      top:0;
+      z-index:9999;
+      width:100%;
+      background:rgba(10,10,10,.98);
+      backdrop-filter:blur(16px);
+      border-bottom:1px solid var(--line);
+      height:var(--navH);
+      display:flex;
+      align-items:center;
+    }
+    .nav-inner{
+      width:100%;
+      max-width:var(--max);
+      margin:0 auto;
+      padding:0 24px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .brand{font-weight:900;font-size:15px;letter-spacing:-.3px;color:#ffffff;}
+    .nav-links{
+      display:flex;align-items:center;gap:4px;
+      font-size:13.5px;font-weight:600;
+    }
+    .nav-links a{
+      padding:8px 14px;border-radius:8px;transition:all .15s;color:#e5e5e7;
+    }
+    .nav-links a:hover{background:var(--soft)}
+    .nav-links a.active{background:var(--accent);color:#fff;}
+    .nav-cta{
+      background:#ffffff !important;color:#0a0a0a !important;margin-left:8px !important;
+    }
+    .nav-cta:hover{background:#f5f5f5 !important}
+
+    .dropdown{position:relative}
+    .dropdown > button{
+      border:0;background:transparent;cursor:pointer;
+      padding:8px 14px;border-radius:8px;font:inherit;font-weight:600;
+      color:#e5e5e7;transition:all .15s;
+    }
+    .dropdown > button:hover{background:var(--soft)}
+    .menu{
+      position:absolute;top:100%;left:0;min-width:240px;
+      background:#18181b;border:1px solid var(--line);border-radius:12px;
+      padding:8px;box-shadow:var(--shadow);display:none;margin-top:6px;
+    }
+    .menu a{
+      display:block;padding:10px 12px;border-radius:8px;font-weight:600;
+      font-size:13.5px;transition:all .15s;color:#e5e5e7;
+    }
+    .menu a:hover{background:#27272a}
+    .menu a.active{background:var(--accent);color:#fff;}
+    .dropdown:focus-within .menu{display:block}
+
+    #map{
+      position:fixed;
+      top:var(--navH);
+      left:0;
+      width:100vw;
+      height:calc(100vh - var(--navH));
+      z-index:0;
+      transition:opacity .35s ease;
+    }
+
+    .section-divider{
+      position:relative;z-index:3;max-width:1200px;
+      margin:0 auto 80px;padding:0 24px;pointer-events:none;
+    }
+    .section-divider-inner{text-align:center;}
+    .section-divider h2{
+      font-size:28px;font-weight:900;line-height:1.25;
+      margin-bottom:10px;color:var(--ink);
+    }
+    .section-divider h2 em{font-style:normal;color:var(--accent);}
+    .section-divider p{
+      font-size:14px;line-height:1.7;color:var(--muted);
+      max-width:820px;margin:0 auto;
+    }
+
+    #opening-story{
+      position:relative;
+      z-index:2;
+      pointer-events:none;
+      padding:12vh 0 80vh;
+    }
+
+    .opening-step{
+      pointer-events:auto;
+      width:min(460px, 92vw);
+      margin:0 6vw 0 auto;
+      opacity:.18;
+      transition:opacity .25s ease;
+    }
+    .opening-step.active{opacity:1;}
+
+    .opening-card{
+      background:rgba(10,10,10,.75);
+      border:1px solid rgba(249,115,22,.25);
+      border-radius:var(--cardR);
+      box-shadow:0 20px 60px rgba(0,0,0,.7), 0 0 0 1px rgba(249,115,22,.1);
+      padding:28px 28px 26px;
+      backdrop-filter:blur(20px);
+    }
+    .opening-card h2{
+      font-size:15px;
+      text-transform:uppercase;
+      letter-spacing:1.2px;
+      font-weight:900;
+      margin:0 0 16px;
+      color:var(--accent);
+    }
+    .opening-card p{
+      font-size:15px;
+      line-height:1.7;
+      color:#d4d4d8;
+    }
+    .opening-card p b{color:var(--ink);font-weight:700;}
+
+    #static-analysis{
+      position:relative;
+      z-index:3;
+      background:transparent;
+      padding:80px 0 60px;
+      min-height:100vh;
+    }
+
+    .analysis-container{
+      display:flex;
+      justify-content:flex-end;
+      max-width:100%;
+      margin:0 auto;
+      padding:0 32px;
+    }
+
+    .analysis-sidebar{
+      position:fixed;
+      z-index:4;
+      left:20px;
+      bottom:20px;
+      width:320px;
+      max-width:calc(100vw - 40px);
+      transition:opacity .3s, transform .3s;
+      opacity:0;
+      transform:translateY(20px);
+      pointer-events:none;
+    }
+    .analysis-sidebar.visible{
+      opacity:1;
+      transform:translateY(0);
+      pointer-events:auto;
+    }
+
+    .analysis-content{
+      max-width:480px;
+      width:100%;
+    }
+
+    .analysis-section{
+      margin-bottom:56px;
+      background:rgba(10,10,10,.82);
+      border:1px solid rgba(249,115,22,.3);
+      border-radius:var(--cardR);
+      padding:24px 28px;
+      backdrop-filter:blur(18px);
+      box-shadow:0 20px 60px rgba(0,0,0,.7), 0 0 0 1px rgba(249,115,22,.1);
+    }
+
+    .analysis-section h3{
+      font-size:15px;
+      text-transform:uppercase;
+      letter-spacing:1.2px;
+      font-weight:900;
+      margin:0 0 14px;
+      color:var(--accent);
+    }
+
+    .analysis-section p{
+      font-size:14px;
+      line-height:1.7;
+      color:#e5e5e7;
+      margin-bottom:18px;
+    }
+
+    .analysis-section img{
+      width:100%;
+      border-radius:var(--cardR);
+      border:1px solid var(--line);
+      box-shadow:0 12px 32px rgba(0,0,0,.6);
+      display:block;
+      cursor:pointer;
+      transition:transform .25s ease, box-shadow .25s ease;
+      margin-top:18px;
+      background:#fff;
+    }
+
+    .analysis-section img:hover{
+      transform:scale(1.02);
+      box-shadow:0 16px 40px rgba(0,0,0,.75);
+    }
+
+    #net-change img,
+    #distribution img{
+      width:80%;
+      margin-left:auto;
+      margin-right:auto;
+    }
+
+    .map-controls{
+      background:rgba(10,10,10,.80);
+      border:1px solid rgba(249,115,22,.25);
+      border-radius:var(--cardR);
+      padding:22px;
+      backdrop-filter:blur(20px);
+      box-shadow:0 20px 60px rgba(0,0,0,.7), 0 0 0 1px rgba(249,115,22,.1);
+    }
+
+    .controls-title{
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:1px;
+      font-weight:900;
+      margin:0 0 20px;
+      color:var(--accent);
+    }
+
+    .static-year-control{
+      margin-bottom:28px;
+      padding-bottom:28px;
+      border-bottom:1px solid var(--line);
+    }
+
+    .year-display{
+      display:flex;
+      align-items:baseline;
+      justify-content:space-between;
+      margin-bottom:14px;
+    }
+
+    .year-label{
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:1px;
+      font-weight:900;
+      color:var(--muted);
+    }
+
+    .year-value{
+      font-size:28px;
+      font-weight:900;
+      color:var(--ink);
+    }
+
+    input[type="range"]{
+      width:100%;
+      -webkit-appearance:none;
+      appearance:none;
+      height:4px;
+      border-radius:999px;
+      background:linear-gradient(90deg, var(--line) 0%, var(--line) calc((2025 - 2016) / 9 * 100%), var(--accent) calc((2025 - 2016) / 9 * 100%), var(--accent) 100%);
+      outline:none;
+      cursor:pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb{
+      -webkit-appearance:none;
+      appearance:none;
+      width:20px;
+      height:20px;
+      border-radius:50%;
+      background:var(--accent);
+      border:3px solid var(--bg);
+      box-shadow:0 8px 24px rgba(249,115,22,.5), 0 0 0 1px rgba(249,115,22,.3);
+      cursor:pointer;
+      transition:transform .15s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover{
+      transform:scale(1.1);
+    }
+
+    input[type="range"]::-moz-range-thumb{
+      width:20px;
+      height:20px;
+      border-radius:50%;
+      background:var(--accent);
+      border:3px solid var(--bg);
+      box-shadow:0 8px 24px rgba(249,115,22,.5), 0 0 0 1px rgba(249,115,22,.3);
+      cursor:pointer;
+      transition:transform .15s ease;
+    }
+
+    input[type="range"]::-moz-range-thumb:hover{
+      transform:scale(1.1);
+    }
+
+    .year-ticks{
+      display:flex;
+      justify-content:space-between;
+      font-size:9px;
+      color:var(--muted);
+      margin-top:10px;
+      user-select:none;
+      font-weight:700;
+      letter-spacing:.2px;
+    }
+
+    .year-ticks span{
+      opacity:.65;
+      transition:opacity .15s;
+      flex-shrink:0;
+    }
+
+    .year-ticks span:hover{
+      opacity:1;
+      color:var(--accent);
+    }
+
+    .legend-box{
+      margin-top:0;
+      padding-top:0;
+      border-top:0;
+    }
+
+    .legend-title{
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:1px;
+      font-weight:900;
+      margin-bottom:14px;
+      color:var(--muted);
+    }
+
+    .legend-bar{
+      height:10px;
+      border-radius:999px;
+      background:linear-gradient(90deg,#2c7bb6,#abd9e9,#ffffbf,#fdae61,#d7191c);
+      border:1px solid rgba(255,255,255,.1);
+      margin:10px 0 12px;
+    }
+
+    .legend-labels{
+      display:flex;
+      justify-content:space-between;
+      font-size:11px;
+      color:var(--muted);
+      font-weight:700;
+    }
+
+    #interactive-story{
+      position:relative;
+      z-index:2;
+      pointer-events:none;
+      padding:8vh 0 100vh;
+    }
+
+    .interactive-step{
+      pointer-events:auto;
+      width:min(580px, 92vw);
+      margin:0 0 70vh 6vw;
+      opacity:.18;
+      transition:opacity .25s ease;
+    }
+
+    .interactive-step.active{opacity:1;}
+
+    .interactive-step.righty{
+      margin-left:calc(100vw - min(580px, 92vw) - 6vw);
+    }
+
+    .interactive-card{
+      background:rgba(10,10,10,.75);
+      border:1px solid rgba(249,115,22,.25);
+      border-radius:var(--cardR);
+      box-shadow:0 20px 60px rgba(0,0,0,.7), 0 0 0 1px rgba(249,115,22,.1);
+      padding:24px 24px 22px;
+      backdrop-filter:blur(20px);
+    }
+
+    .interactive-card h3{
+      font-size:15px;
+      text-transform:uppercase;
+      letter-spacing:1.2px;
+      font-weight:900;
+      margin:0 0 14px;
+      color:var(--accent);
+    }
+
+    .interactive-card p{
+      font-size:15px;
+      line-height:1.7;
+      color:#d4d4d8;
+      margin-bottom:14px;
+    }
+
+    .interactive-card p b{color:var(--ink);font-weight:700;}
+
+    .interactive-card img{
+      width:100%;
+      border-radius:var(--cardR);
+      margin-top:14px;
+      border:1px solid var(--line);
+      box-shadow:0 16px 40px rgba(0,0,0,.7);
+      display:block;
+      background:#fff;
+    }
+
+    .floating-legend{
+      position:fixed;
+      z-index:4;
+      left:20px;
+      bottom:20px;
+      background:rgba(10,10,10,.80);
+      border:1px solid rgba(249,115,22,.25);
+      border-radius:var(--cardR);
+      padding:18px 18px 16px;
+      box-shadow:0 20px 60px rgba(0,0,0,.7), 0 0 0 1px rgba(249,115,22,.1);
+      width:340px;
+      max-width:calc(100vw - 40px);
+      transition:opacity .3s, transform .3s;
+      backdrop-filter:blur(20px);
+    }
+
+    .floating-legend.hidden{
+      opacity:0;
+      transform:translateY(20px);
+      pointer-events:none;
+    }
+
+    .floating-legend .legend-title{
+      color:var(--accent);
+      margin-bottom:8px;
+    }
+
+    .floating-legend .time-ui{
+      margin-top:16px;
+      padding-top:16px;
+      border-top:1px solid var(--line);
+    }
+
+    .floating-legend .time-ui.hidden{
+      display:none;
+    }
+
+    .floating-legend .year-display{
+      margin-bottom:12px;
+    }
+
+    .floating-legend .year-value{
+      font-size:18px;
+    }
+
+    #sankey-section{
+      position:relative;z-index:1;min-height:100vh;
+      display:flex;align-items:center;justify-content:center;
+      padding:10vh 24px;background:var(--bg);
+    }
+    .sankey-container{
+      position:relative;z-index:2;max-width:1200px;width:100%;
+      background:rgba(10,10,10,.88);border:1px solid var(--line);
+      border-radius:var(--cardR);padding:44px 40px 36px;box-shadow:var(--shadow);
+    }
+    .sankey-header{text-align:center;margin-bottom:22px;}
+    .sankey-header h2{
+      font-size:28px;font-weight:900;line-height:1.25;margin-bottom:10px;color:var(--ink);
+    }
+    .sankey-header h2 em{font-style:normal;color:#f97316;}
+    .sankey-header p{
+      font-size:14px;line-height:1.7;color:var(--muted);
+      max-width:820px;margin:0 auto;
+    }
+
+    .sankey-col-labels{
+      display:flex;justify-content:space-between;
+      font-size:11px;font-weight:800;text-transform:uppercase;
+      letter-spacing:1px;color:var(--muted);
+      margin:18px 0 10px;padding:0 90px;
+    }
+
+    .sankey-tools{
+      display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:8px 0 14px;
+    }
+    .chip{
+      border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);
+      color:#e5e5e7;font-weight:700;font-size:12.5px;
+      padding:8px 12px;border-radius:999px;cursor:pointer;
+      transition:all .15s ease;user-select:none;
+    }
+    .chip:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.22);}
+    .chip.active{background:rgba(249,115,22,.14);border-color:rgba(249,115,22,.35);color:#fed7aa;}
+
+    .sankey-legend{
+      display:flex;justify-content:center;flex-wrap:wrap;gap:16px;
+      margin-top:16px;padding-top:16px;border-top:1px solid var(--line);
+    }
+    .sankey-legend-item{
+      display:flex;align-items:center;gap:8px;
+      font-size:11.5px;font-weight:700;color:var(--muted);
+    }
+    .sankey-legend-item .sw{
+      width:14px;height:14px;border-radius:3px;display:inline-block;
+    }
+
+    .sankey-insight{
+      margin-top:16px;padding:18px;
+      background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.22);
+      border-radius:var(--cardR);
+    }
+    .sankey-insight p{font-size:13.5px;line-height:1.75;color:#d4d4d8;}
+    .sankey-insight b{color:#f97316;font-weight:800;}
+
+    #sankey-tooltip{
+      position:absolute;background:rgba(10,10,10,.95);
+      border:1px solid #f97316;border-radius:8px;padding:10px 12px;
+      font-size:12px;font-weight:700;color:#fff;pointer-events:none;
+      opacity:0;box-shadow:0 10px 30px rgba(0,0,0,.7);
+      transition:opacity .2s ease;z-index:10;
+    }
+    #sankey-tooltip.show{opacity:1;}
+
+    @keyframes pathGlow{
+      0%,100%{filter:drop-shadow(0 0 4px currentColor) brightness(1.15);}
+      50%{filter:drop-shadow(0 0 9px currentColor) brightness(1.35);}
+    }
+
+    @media (max-width:1100px){
+      .analysis-container{
+        padding:0 24px;
+      }
+      .analysis-sidebar{
+        width:calc(100vw - 40px);
+        max-width:340px;
+      }
+      .analysis-content{
+        max-width:100%;
+      }
+      .analysis-section{
+        margin-bottom:48px;
+      }
+      .analysis-section img{
+        width:100% !important;
+        margin-left:0 !important;
+        margin-right:0 !important;
+      }
+    }
+
+    @media (max-width:900px){
+      .opening-step, .interactive-step{
+        margin:0 auto 60vh;
+        width:min(540px, 92vw);
+      }
+      .interactive-step.righty{
+        margin-left:auto;
+        margin-right:auto;
+      }
+      .floating-legend{
+        width:320px;
+      }
+    }
+
+    .mapboxgl-canvas-container.mapboxgl-touch-zoom-rotate.mapboxgl-touch-drag-pan,
+    .mapboxgl-canvas-container.mapboxgl-touch-zoom-rotate.mapboxgl-touch-drag-pan .mapboxgl-canvas{
+      touch-action:unset;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="topnav">
+    <div class="nav-inner">
+      <a class="brand" href="index.html">HCMC Climate Risk Assessment</a>
+
+      <div class="nav-links">
+        <a href="story.html">Risk Assessment Story</a>
+
+        <div class="dropdown" tabindex="0">
+          <button type="button">Hazards ▾</button>
+          <div class="menu">
+            <a href="flood.html">Flood Risk</a>
+            <a href="subsidence.html">Subsidence</a>
+            <a href="temperature.html" class="active">Surface Temperature</a>
+            <a href="exposure.html">Air Quality & Exposure</a>
+          </div>
+        </div>
+
+        <a href="crowdsourcing.html">Crowdsourcing</a>
+        <a href="dashboard.html">Risk Dashboard</a>
+        <a href="conclusion.html" class="nav-cta">Conclusion</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="map"></div>
+
+  <div id="opening-story">
+    <div class="section-divider">
+      <div class="section-divider-inner">
+        <h2>Surface heat · <em>urban heat island intensification</em></h2>
+        <p>Dense construction, impervious surfaces, and limited vegetation create temperature levels up 3–5°C between urban core and peri-urban areas.</p>
+      </div>
+    </div>
+
+    <div class="opening-step active" id="patterns-intro">
+      <div class="opening-card">
+        <h2>SURFACE HEAT PATTERNS</h2>
+        <p>
+          HCMC exhibits a persistent <b>thermal landscape signature</b>: dense urban cores and industrial corridors register as statistical hotspots, 
+          while mangrove wetlands and water bodies form stable coldspot buffers. This spatial structure has remained consistent from 2016 to 2025, 
+          indicating that <b>built environment morphology</b> drives thermal risk more than year-to-year weather variability.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div id="static-analysis">
+    <div class="analysis-container">
+      <div class="analysis-sidebar">
+        <div class="map-controls">
+          <div class="controls-title">INTERACTIVE MAP CONTROLS</div>
+          
+          <div class="static-year-control">
+            <div class="year-display">
+              <div class="year-label">YEAR</div>
+              <div class="year-value" id="staticYearValue">2025</div>
+            </div>
+            <input id="staticYearSlider" type="range" min="2016" max="2025" step="1" value="2025" />
+            <div class="year-ticks">
+              <span>2016</span><span>2017</span><span>2018</span><span>2019</span><span>2020</span>
+              <span>2021</span><span>2022</span><span>2023</span><span>2024</span><span>2025</span>
+            </div>
+          </div>
+
+          <div class="legend-box">
+            <div class="legend-title">LAND SURFACE TEMPERATURE</div>
+            <div class="legend-bar"></div>
+            <div class="legend-labels">
+              <span>≤22℃</span>
+              <span>＞32℃</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="analysis-content">
+        <div class="analysis-section" id="annual-patterns">
+          <h3>ANNUAL LST PATTERNS (2016–2025)</h3>
+          <p>Ten years of Landsat thermal data reveal a consistent spatial structure. High-temperature clusters track built-up and industrial zones, while cooler surfaces follow water bodies, wetlands, and vegetated peripheries.</p>
+          <img src="asset/fig2_maps_2016_2025.png" alt="Annual patterns" loading="lazy">
+        </div>
+
+        <div class="analysis-section" id="net-change">
+          <h3>NET CHANGE (2025 − 2016)</h3>
+          <p>The decadal difference map isolates long-term shifts distinct from annual fluctuations. Most areas show relative cooling, while localized warming appears in specific development corridors.</p>
+          <img src="asset/fig3_change_2025_minus_2016.png" alt="Net change" loading="lazy">
+        </div>
+
+        <div class="analysis-section" id="distribution">
+          <h3>PIXEL-LEVEL DISTRIBUTIONS BY YEAR</h3>
+          <p>Examining pixel-level histograms highlights that heat risk is fundamentally distributional. While median temperature shifts are modest, the extreme high-temperature tail shows more pronounced variability.</p>
+          <img src="asset/fig4_hist_by_year.png" alt="Distribution" loading="lazy">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="sankey-section">
+    <div class="sankey-container">
+      <div class="sankey-header">
+        <h2>Heat system · <em>drivers → processes → impacts</em></h2>
+        <p>
+          Urban heat in HCMC is not just "hot weather". It is a system of interacting drivers: 
+          impervious surface expansion, loss of vegetation, dense building form, and vehicle emissions — 
+          each amplifying thermal accumulation and reducing cooling capacity.
+        </p>
+      </div>
+
+      <div class="sankey-col-labels">
+        <span>Drivers</span>
+        <span>Heat Processes</span>
+        <span>Impacts</span>
+      </div>
+
+      <div class="sankey-tools" aria-label="Sankey filters">
+        <button class="chip active" data-filter="all">All flows</button>
+        <button class="chip" data-filter="surface">Surface imperviousness</button>
+        <button class="chip" data-filter="vegetation">Vegetation loss</button>
+        <button class="chip" data-filter="density">Building density</button>
+      </div>
+
+      <svg id="sankey-svg" viewBox="0 0 1100 460"></svg>
+
+      <div class="sankey-legend">
+        <div class="sankey-legend-item"><span class="sw" style="background:#64748b"></span>Drivers</div>
+        <div class="sankey-legend-item"><span class="sw" style="background:#f97316"></span>Heat processes</div>
+        <div class="sankey-legend-item"><span class="sw" style="background:#dc2626"></span>Impacts</div>
+      </div>
+
+      <div class="sankey-insight">
+        <p>
+          <b>Why heat persists:</b> urban heat concentrates where <b>impervious surfaces</b>, <b>vegetation loss</b>, 
+          and <b>dense building form</b> overlap — especially in commercial cores lacking tree canopy and experiencing 
+          high vehicle traffic that adds to thermal load.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div id="interactive-story">
+    <div class="interactive-step active righty" id="year-explorer">
+      <div class="interactive-card">
+        <h3>INTERACTIVE YEAR EXPLORER</h3>
+        <p>Use the time slider to examine annual LST patterns from 2016 to 2025. Observe whether thermal corridors remain spatially stable and identify where year-to-year deviations emerge.</p>
+      </div>
+    </div>
+
+    <div class="interactive-step righty" id="district12-hotspot">
+      <div class="interactive-card">
+        <h3>DISTRICT 12: INDUSTRIAL HEAT CORRIDOR</h3>
+        <p>District 12 exemplifies the intersection of industrial land use and thermal risk. Statistical hotspots align with impervious manufacturing zones and logistics infrastructure.</p>
+        <img src="asset/district12_news.jpg" alt="District 12" loading="lazy">
+      </div>
+    </div>
+  </div>
+
+  <div class="floating-legend hidden" id="floatingLegend">
+    <div class="legend-title">LAND SURFACE TEMPERATURE</div>
+    <div class="legend-bar"></div>
+    <div class="legend-labels">
+      <span>≤22℃</span>
+      <span>＞32℃</span>
+    </div>
+
+    <div class="time-ui" id="floatingTimeUI">
+      <div class="year-display">
+        <div class="year-label">YEAR</div>
+        <div class="year-value" id="floatingYearValue">2025</div>
+      </div>
+      <input id="floatingYearSlider" type="range" min="2016" max="2025" step="1" value="2025" />
+      <div class="year-ticks">
+        <span>2016</span><span>2017</span><span>2018</span><span>2019</span><span>2020</span>
+        <span>2021</span><span>2022</span><span>2023</span><span>2024</span><span>2025</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="sankey-tooltip"></div>
+
+  <script>
+    mapboxgl.accessToken = "pk.eyJ1IjoiaGV4aW55aTA1MjEiLCJhIjoiY203dTdydmxmMDFndTJycXN3cHkybHY5cCJ9.vZZQOhyDe4mJUqD1YnuySQ";
+
+    const temperatureConfig = {
+      style: "mapbox://styles/hexinyi0521/cmkxy7csp008a01sh3xyk952m",
+      openingChapter: {
+        id: "patterns-intro",
+        location: {center: [106.780, 10.714], zoom: 9.34, pitch: 48, bearing: 38},
+        flyTo: { speed: 0.8, curve: 1.3, duration: 1600 },
+        onChapterEnter: [
+          { layer: "hcmc-gistar-2025", opacity: 1, duration: 600 },
+          { layer: "hcmc-city", opacity: 1, duration: 600 },
+          { layer: "hcmc-districts", opacity: 0.3, duration: 600 },
+          { layer: "hcmc-districtsname", opacity: 0.8, duration: 600 }
+        ],
+        onChapterExit: [
+          { layer: "hcmc-gistar-2025", opacity: 0, duration: 400 }
+        ]
+      },
+      interactiveChapters: [
+        {
+          id: "year-explorer",
+          location: {center: [106.6797, 10.7831], zoom: 9.8, pitch: 42, bearing: -12},
+          flyTo: { speed: 0.9, curve: 1.25, duration: 1400 },
+          year: 2025,
+          onChapterEnter: [
+            { layer: "hcmc-city", opacity: 1, duration: 400 },
+            { layer: "hcmc-districts", opacity: 0.35, duration: 400 },
+            { layer: "hcmc-districtsname", opacity: 0.65, duration: 400 }
+          ],
+          hideLSTLayers: false,
+          showLegend: true,
+          showYearSlider: true
+        },
+        {
+          id: "district12-hotspot",
+          location: {center: [106.6505, 10.8676], zoom: 12.8, pitch: 56, bearing: 22},
+          flyTo: { speed: 0.95, curve: 1.35, duration: 1300 },
+          onChapterEnter: [
+            { layer: "hcmc-gistar-2025", opacity: 1, duration: 500 },
+            { layer: "hcmc-city", opacity: 1, duration: 500 },
+            { layer: "hcmc-districts", opacity: 0.4, duration: 500 }
+          ],
+          hideLSTLayers: true,
+          showLegend: false,
+          showYearSlider: false
+        }
+      ]
+    };
+
+    const LST_LAYER_IDS = {
+      2016: "hcmc-LST2016", 2017: "hcmc-LST2017", 2018: "hcmc-LST2018",
+      2019: "hcmc-LST2019", 2020: "hcmc-LST2020", 2021: "hcmc-LST2021",
+      2022: "hcmc-LST2022", 2023: "hcmc-LST2023", 2024: "hcmc-LST2024",
+      2025: "hcmc-LST2025"
+    };
+
+    const map = new mapboxgl.Map({
+      container: "map",
+      style: temperatureConfig.style,
+      center: temperatureConfig.openingChapter.location.center,
+      zoom: temperatureConfig.openingChapter.location.zoom,
+      bearing: temperatureConfig.openingChapter.location.bearing,
+      pitch: temperatureConfig.openingChapter.location.pitch,
+      interactive: true,
+      fadeDuration: 0
+    });
+
+    map.scrollZoom.disable();
+    map.dragPan.disable();
+    map.dragRotate.disable();
+    map.doubleClickZoom.disable();
+    map.boxZoom.disable();
+    map.keyboard.disable();
+    map.touchZoomRotate.disable();
+
+    const layerTypes = {
+      fill: ["fill-opacity"],
+      line: ["line-opacity"],
+      circle: ["circle-opacity", "circle-stroke-opacity"],
+      symbol: ["icon-opacity", "text-opacity"],
+      raster: ["raster-opacity"],
+      "fill-extrusion": ["fill-extrusion-opacity"],
+      heatmap: ["heatmap-opacity"]
+    };
+
+    function getLayerPaintType(layerId){
+      const layer = map.getLayer(layerId);
+      if(!layer) return [];
+      return layerTypes[layer.type] || [];
+    }
+
+    function setLayerOpacity(cfg){
+      if(!cfg || !cfg.layer) return;
+      if(!map.getLayer(cfg.layer)) return;
+      const props = getLayerPaintType(cfg.layer);
+      props.forEach(p => {
+        if(cfg.duration){
+          map.setPaintProperty(cfg.layer, p + "-transition", {duration: cfg.duration});
+        }
+        map.setPaintProperty(cfg.layer, p, cfg.opacity);
+      });
+    }
+
+    function setYear(year, duration = 200){
+      const y = Number(year);
+      document.getElementById("staticYearValue").textContent = String(y);
+      document.getElementById("floatingYearValue").textContent = String(y);
+      document.getElementById("staticYearSlider").value = String(y);
+      document.getElementById("floatingYearSlider").value = String(y);
+
+      Object.entries(LST_LAYER_IDS).forEach(([yr, layerId]) => {
+        if(!map.getLayer(layerId)) return;
+        map.setPaintProperty(layerId, "raster-opacity-transition", {duration});
+        map.setPaintProperty(layerId, "raster-opacity", Number(yr) === y ? 1 : 0);
+      });
+    }
+
+    function hideAllLSTLayers(duration = 200){
+      Object.values(LST_LAYER_IDS).forEach(layerId => {
+        if(!map.getLayer(layerId)) return;
+        map.setPaintProperty(layerId, "raster-opacity-transition", {duration});
+        map.setPaintProperty(layerId, "raster-opacity", 0);
+      });
+    }
+
+    function flyToLocation(loc, opts = {}){
+      const base = {
+        center: loc.center,
+        zoom: loc.zoom,
+        bearing: loc.bearing,
+        pitch: loc.pitch,
+        essential: true,
+        duration: opts.duration ?? 1200,
+        curve: opts.curve ?? 1.2,
+        speed: opts.speed ?? 0.9
+      };
+      map.flyTo(base);
+    }
+
+    const openingScroller = scrollama();
+    const interactiveScroller = scrollama();
+    const floatingLegend = document.getElementById("floatingLegend");
+    const floatingTimeUI = document.getElementById("floatingTimeUI");
+    const staticSidebar = document.querySelector(".analysis-sidebar");
+
+    let activeOpeningId = null;
+    let activeInteractiveId = null;
+
+    map.on("load", () => {
+      const missing = Object.values(LST_LAYER_IDS).filter(id => !map.getLayer(id));
+      if(missing.length) console.warn("Missing LST layers:", missing);
+
+      hideAllLSTLayers(0);
+
+      const staticSlider = document.getElementById("staticYearSlider");
+      staticSlider.addEventListener("input", e => setYear(e.target.value, 0));
+      staticSlider.addEventListener("change", e => setYear(e.target.value, 180));
+
+      const floatingSlider = document.getElementById("floatingYearSlider");
+      floatingSlider.addEventListener("input", e => setYear(e.target.value, 0));
+      floatingSlider.addEventListener("change", e => setYear(e.target.value, 180));
+
+      const opening = temperatureConfig.openingChapter;
+
+      openingScroller
+        .setup({ step: ".opening-step", offset: 0.6 })
+        .onStepEnter(resp => {
+          if(activeOpeningId === opening.id) return;
+          activeOpeningId = opening.id;
+
+          document.querySelectorAll(".opening-step").forEach(s => s.classList.remove("active"));
+          resp.element.classList.add("active");
+
+          staticSidebar.classList.remove("visible");
+          floatingLegend.classList.add("hidden");
+
+          if(opening.onChapterEnter && opening.onChapterEnter.length){
+            opening.onChapterEnter.forEach(setLayerOpacity);
+          }
+
+          flyToLocation(opening.location, opening.flyTo);
+        })
+        .onStepExit(resp => {
+          resp.element.classList.remove("active");
+          if(opening.onChapterExit && opening.onChapterExit.length){
+            opening.onChapterExit.forEach(setLayerOpacity);
+          }
+          activeOpeningId = null;
+        });
+
+      const staticObserver = new IntersectionObserver(
+        entries => {
+          entries.forEach(entry => {
+            if(entry.isIntersecting){
+              setYear(staticSlider.value, 300);
+              staticSidebar.classList.add("visible");
+              floatingLegend.classList.add("hidden");
+            } else {
+              staticSidebar.classList.remove("visible");
+            }
+          });
+        },
+        { threshold: 0.15 }
+      );
+
+      const staticAnalysis = document.getElementById("static-analysis");
+      staticObserver.observe(staticAnalysis);
+
+      interactiveScroller
+        .setup({ step: ".interactive-step", offset: 0.58 })
+        .onStepEnter(resp => {
+          const chap = temperatureConfig.interactiveChapters.find(x => x.id === resp.element.id);
+          if(!chap || activeInteractiveId === chap.id) return;
+          activeInteractiveId = chap.id;
+
+          document.querySelectorAll(".interactive-step").forEach(s => s.classList.remove("active"));
+          resp.element.classList.add("active");
+
+          staticSidebar.classList.remove("visible");
+          
+          if(chap.showLegend === false){
+            floatingLegend.classList.add("hidden");
+          } else {
+            floatingLegend.classList.remove("hidden");
+          }
+
+          if(chap.showYearSlider){
+            floatingTimeUI.classList.remove("hidden");
+          } else {
+            floatingTimeUI.classList.add("hidden");
+          }
+
+          if(chap.hideLSTLayers){
+            hideAllLSTLayers(250);
+          } else if(typeof chap.year === "number"){
+            setYear(chap.year, 250);
+          }
+
+          if(chap.onChapterEnter && chap.onChapterEnter.length){
+            chap.onChapterEnter.forEach(setLayerOpacity);
+          }
+
+          flyToLocation(chap.location, chap.flyTo);
+        });
+
+      window.addEventListener("resize", () => {
+        openingScroller.resize();
+        interactiveScroller.resize();
+      });
+
+      flyToLocation(opening.location, opening.flyTo);
+      if(opening.onChapterEnter && opening.onChapterEnter.length){
+        opening.onChapterEnter.forEach(setLayerOpacity);
+      }
+    });
+
+    // ===== Heat Sankey =====
+    (function(){
+      const svg = d3.select('#sankey-svg');
+      const tooltip = d3.select('#sankey-tooltip');
+
+      const COLORS = {
+        driver: '#64748b',
+        process: '#f97316',
+        impact: '#dc2626'
+      };
+
+      const nodes = [
+        {id:0, name:'Impervious\nSurface\nExpansion', layer:0, value:24, color:COLORS.driver, tag:['surface']},
+        {id:1, name:'Vegetation\nLoss &\nCanopy Decline', layer:0, value:20, color:COLORS.driver, tag:['vegetation']},
+        {id:2, name:'Dense\nBuilding\nForm', layer:0, value:22, color:COLORS.driver, tag:['density']},
+        {id:3, name:'Vehicle\nEmissions\n& Traffic', layer:0, value:14, color:COLORS.driver, tag:['surface']},
+
+        {id:4, name:'Reduced\nEvaporative\nCooling', layer:1, value:24, color:COLORS.process, tag:['surface','vegetation']},
+        {id:5, name:'Increased\nThermal\nMass', layer:1, value:26, color:COLORS.process, tag:['surface','density']},
+        {id:6, name:'Reduced\nAir\nCirculation', layer:1, value:18, color:COLORS.process, tag:['density']},
+        {id:7, name:'Waste Heat\nRelease', layer:1, value:12, color:COLORS.process, tag:['density']},
+
+        {id:8,  name:'Urban Heat\nIsland\nIntensification', layer:2, value:26, color:COLORS.impact, tag:['surface','vegetation','density']},
+        {id:9,  name:'Increased\nCooling\nDemand', layer:2, value:20, color:COLORS.impact, tag:['density']},
+        {id:10, name:'Heat\nHealth\nExposure', layer:2, value:18, color:COLORS.impact, tag:['surface','vegetation']},
+        {id:11, name:'Energy\nSystem\nStress', layer:2, value:16, color:COLORS.impact, tag:['density']}
+      ];
+
+      const links = [
+        {s:0, t:4, v:10, tag:'surface'}, {s:0, t:5, v:14, tag:'surface'},
+        {s:1, t:4, v:14, tag:'vegetation'}, {s:1, t:5, v:6,  tag:'vegetation'},
+        {s:2, t:5, v:12, tag:'density'}, {s:2, t:6, v:10, tag:'density'},
+        {s:3, t:7, v:8,  tag:'surface'}, {s:3, t:5, v:6,  tag:'surface'},
+
+        {s:4, t:8, v:12, tag:'vegetation'}, {s:4, t:10, v:12, tag:'vegetation'},
+        {s:5, t:8, v:14, tag:'surface'}, {s:5, t:9, v:12, tag:'density'},
+        {s:6, t:8, v:8,  tag:'density'}, {s:6, t:9, v:10, tag:'density'},
+        {s:7, t:9, v:6,  tag:'density'}, {s:7, t:11, v:6, tag:'density'}
+      ];
+
+      const W = 1100, H = 460, nodeW = 28, pad = 16;
+      const mar = {t:24, b:20, l:96, r:96};
+      const availH = H - mar.t - mar.b;
+      const colX = [mar.l, W/2 - nodeW/2, W - mar.r - nodeW];
+
+      const layers = [[],[],[]];
+      nodes.forEach(n => layers[n.layer].push(n));
+
+      layers.forEach(ln => {
+        const tot = ln.reduce((a,n)=>a+n.value,0);
+        const sc  = (availH - pad*(ln.length-1)) / tot;
+        let yy = mar.t;
+        ln.forEach(n => {
+          n.x = colX[n.layer];
+          n.y = yy;
+          n.h = n.value * sc;
+          n._sOff = 0;
+          n._tOff = 0;
+          yy += n.h + pad;
+        });
+      });
+
+      function calcRibbon(set){
+        set.forEach(l => {
+          const src = nodes[l.s], tgt = nodes[l.t];
+          const sh = (l.v / src.value) * src.h;
+          const th = (l.v / tgt.value) * tgt.h;
+          l._p = {
+            sx: src.x + nodeW, sy0: src.y + src._sOff, sy1: src.y + src._sOff + sh,
+            tx: tgt.x, ty0: tgt.y + tgt._tOff, ty1: tgt.y + tgt._tOff + th
+          };
+          src._sOff += sh;
+          tgt._tOff += th;
+        });
+      }
+
+      nodes.forEach(n=>{ n._sOff=0; n._tOff=0; });
+      calcRibbon(links.filter(l => nodes[l.s].layer===0).sort((a,b)=>a.s-b.s||a.t-b.t));
+      calcRibbon(links.filter(l => nodes[l.s].layer===1).sort((a,b)=>a.s-b.s||a.t-b.t));
+
+      function ribbonD(l){
+        const {sx,sy0,sy1,tx,ty0,ty1} = l._p;
+        const mx = (sx + tx) / 2;
+        return `M${sx},${sy0} C${mx},${sy0} ${mx},${ty0} ${tx},${ty0} L${tx},${ty1} C${mx},${ty1} ${mx},${sy1} ${sx},${sy1} Z`;
+      }
+
+      svg.attr('viewBox', `0 0 ${W} ${H}`);
+      svg.selectAll('*').remove();
+
+      const gLinks = svg.append('g');
+
+      const linkSel = gLinks.selectAll('path')
+        .data(links).enter().append('path')
+        .attr('d', ribbonD)
+        .attr('fill', d => nodes[d.s].color)
+        .attr('opacity', 0.22)
+        .attr('stroke', 'none')
+        .style('transition','all .25s ease')
+        .on('mouseover', function(e, d){
+          d3.select(this).attr('opacity', 0.78).style('animation','pathGlow 1.4s infinite');
+          const s = nodes[d.s].name.replaceAll('\n',' ');
+          const t = nodes[d.t].name.replaceAll('\n',' ');
+          tooltip.html(`<b>${s}</b> → <b>${t}</b><br>${d.v} weight`)
+            .style('left', (e.pageX + 14) + 'px')
+            .style('top', (e.pageY - 12) + 'px')
+            .classed('show', true);
+        })
+        .on('mouseout', function(){
+          d3.select(this).attr('opacity', 0.22).style('animation','none');
+          tooltip.classed('show', false);
+        });
+
+      const gNodes = svg.append('g').selectAll('g')
+        .data(nodes).enter().append('g');
+
+      gNodes.append('rect')
+        .attr('x', d=>d.x).attr('y', d=>d.y)
+        .attr('width', nodeW).attr('height', d=>d.h)
+        .attr('fill', d=>d.color).attr('rx', 4)
+        .style('filter','drop-shadow(0 2px 4px rgba(0,0,0,0.35))')
+        .style('transition','all .25s ease')
+        .on('mouseover', function(e, d){
+          d3.select(this)
+            .style('filter', `drop-shadow(0 6px 16px ${d.color}) brightness(1.2)`)
+            .attr('width', nodeW+4).attr('x', d.x-2);
+          tooltip.html(`<b>${d.name.replaceAll('\n',' ')}</b><br>${d.value} total`)
+            .style('left', (e.pageX + 14) + 'px')
+            .style('top', (e.pageY - 12) + 'px')
+            .classed('show', true);
+          linkSel.attr('opacity', l => (l.s===d.id || l.t===d.id) ? 0.72 : 0.10);
+        })
+        .on('mouseout', function(e, d){
+          d3.select(this)
+            .style('filter','drop-shadow(0 2px 4px rgba(0,0,0,0.35))')
+            .attr('width', nodeW).attr('x', d.x);
+          tooltip.classed('show', false);
+          linkSel.attr('opacity', 0.22);
+        });
+
+      gNodes.append('text')
+        .attr('x', d => d.layer===0 ? d.x-10 : d.x+nodeW+10)
+        .attr('y', d => d.y + d.h/2 - 6)
+        .attr('text-anchor', d => d.layer===0 ? 'end' : 'start')
+        .attr('fill', '#e5e5e7')
+        .attr('font-size', '11px')
+        .attr('font-family', 'Inter')
+        .attr('font-weight', '800')
+        .each(function(d){
+          const parts = d.name.split('\n');
+          const sel = d3.select(this);
+          parts.forEach((t,i)=>{
+            sel.append('tspan')
+              .attr('x', this.getAttribute('x'))
+              .attr('dy', i ? '1.15em' : '0')
+              .text(t);
+          });
+        });
+
+      gNodes.append('text')
+        .attr('x', d => d.layer===0 ? d.x-10 : d.x+nodeW+10)
+        .attr('y', d => d.y + d.h/2 + 18)
+        .attr('text-anchor', d => d.layer===0 ? 'end' : 'start')
+        .attr('fill', '#a1a1aa')
+        .attr('font-size', '10px')
+        .attr('font-family', 'Inter')
+        .attr('font-weight', '700')
+        .text(d => d.value);
+
+      const chips = document.querySelectorAll('.chip');
+      let currentFilter = 'all';
+
+      function applyFilter(f){
+        currentFilter = f;
+        chips.forEach(c => c.classList.toggle('active', c.dataset.filter===f));
+        linkSel.each(function(d){
+          const show = (f==='all') ? true : (d.tag===f);
+          d3.select(this).attr('opacity', show ? 0.30 : 0.06).style('animation', 'none');
+        });
+      }
+
+      chips.forEach(c => {
+        c.addEventListener('click', () => applyFilter(c.dataset.filter));
+      });
+
+      applyFilter('all');
+    })();
+  </script>
+</body>
+</html>

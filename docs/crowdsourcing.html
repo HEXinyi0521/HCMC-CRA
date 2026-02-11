@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HCMC Climate Risk Crowdsourcing</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+    <style>
+    :root{
+      --bg:#ffffff;
+      --ink:#0a0a0a;
+      --muted:#52525b;
+      --line:#27272a;
+      --soft:#18181b;
+      --accent:#f97316;
+      --max:1200px;
+      --navH:56px;
+      --shadow:0 20px 60px rgba(0,0,0,.08);
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0}
+
+    body {
+        font-family:"Inter", -apple-system, system-ui, sans-serif;
+        color:var(--ink);
+        background: url('./asset/Background.jpg') no-repeat center center fixed;
+        background-size: cover;
+        background-attachment: fixed;
+        background-blend-mode: lighten;
+        background-color: rgba(250, 250, 250, 0.85);
+        -webkit-font-smoothing:antialiased;
+    }
+
+    a{color:inherit;text-decoration:none}
+
+    /* ===== 黑色导航栏 ===== */
+    .topnav{
+      position:fixed;
+      top:0;
+      width:100%;
+      z-index:9999;
+      background:rgba(10,10,10,.98);
+      backdrop-filter:blur(12px);
+      border-bottom:1px solid var(--line);
+    }
+    .nav-inner{
+      max-width:var(--max);
+      margin:0 auto;
+      padding:14px 24px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .brand{
+      font-weight:900;
+      font-size:15px;
+      letter-spacing:-.3px;
+      color:#ffffff;
+    }
+    .nav-links{
+      display:flex;
+      align-items:center;
+      gap:4px;
+      font-size:13.5px;
+      font-weight:600;
+    }
+    .nav-links a{
+      padding:8px 14px;
+      border-radius:8px;
+      transition:all .15s;
+      color:#e5e5e7;
+    }
+    .nav-links a:hover{background:var(--soft)}
+    .nav-links a.active{background:var(--accent);color:#fff;}
+    .nav-cta{
+      background:#ffffff !important;
+      color:#0a0a0a !important;
+      margin-left:8px !important;
+    }
+    .nav-cta:hover{background:#f5f5f5 !important}
+
+    .dropdown{position:relative}
+    .dropdown > button{
+      border:0;
+      background:transparent;
+      cursor:pointer;
+      padding:8px 14px;
+      border-radius:8px;
+      font:inherit;
+      font-weight:600;
+      color:#e5e5e7;
+      transition:all .15s;
+    }
+    .dropdown > button:hover{background:var(--soft)}
+    .menu{
+      position:absolute;
+      top:100%;
+      left:0;
+      min-width:240px;
+      background:#18181b;
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:8px;
+      box-shadow:var(--shadow);
+      display:none;
+      margin-top:6px;
+    }
+    .menu a{
+      display:block;
+      padding:10px 12px;
+      border-radius:8px;
+      font-weight:600;
+      font-size:13.5px;
+      transition:all .15s;
+      color:#e5e5e7;
+    }
+    .menu a:hover{background:#27272a}
+    .dropdown:focus-within .menu{display:block}
+
+    /* ===== 主内容区域 ===== */
+    .main-container{
+      max-width:var(--max);
+      margin:0 auto;
+      padding:calc(var(--navH) + 60px) 24px 80px;
+    }
+
+    .hero-section{
+      text-align:center;
+      margin-bottom:60px;
+      padding:40px 0;
+    }
+
+    .hero-section h1{
+      font-size:48px;
+      font-weight:900;
+      letter-spacing:-1px;
+      margin:0 0 20px;
+      color:var(--ink);
+    }
+
+    .hero-section p{
+      font-size:18px;
+      line-height:1.7;
+      color:var(--muted);
+      max-width:800px;
+      margin:0 auto 32px;
+    }
+
+    /* ===== 按钮样式 ===== */
+    .open-modal-btn {
+        display:inline-block;
+        padding:14px 28px;
+        background:var(--accent);
+        color:#fff;
+        border:none;
+        border-radius:8px;
+        font-size:15px;
+        font-weight:700;
+        cursor:pointer;
+        transition:all .2s;
+        box-shadow:0 4px 16px rgba(249,115,22,.25);
+    }
+
+    .open-modal-btn:hover {
+        background:#ea580c;
+        transform:translateY(-2px);
+        box-shadow:0 6px 20px rgba(249,115,22,.35);
+    }
+
+    /* ===== iframe地图容器 ===== */
+    .map-container{
+      background:#fff;
+      border-radius:12px;
+      padding:24px;
+      box-shadow:0 8px 32px rgba(0,0,0,.08);
+      border:1px solid #e5e7eb;
+    }
+
+    .map-container h2{
+      font-size:20px;
+      font-weight:800;
+      margin:0 0 16px;
+      color:var(--ink);
+      text-align:center;
+    }
+
+    iframe {
+        width:100%;
+        height:600px;
+        border:none;
+        border-radius:8px;
+        background:#f9fafb;
+    }
+
+    /* ===== Modal 样式 ===== */
+    .modal {
+        display:none;
+        position:fixed;
+        z-index:10000;
+        padding-top:80px;
+        left:0;
+        top:0;
+        width:100%;
+        height:100%;
+        overflow:auto;
+        background-color:rgba(0,0,0,0.75);
+        backdrop-filter:blur(4px);
+    }
+
+    .modal-content {
+        background:#fff;
+        margin:auto;
+        padding:40px 48px;
+        border:1px solid #e5e7eb;
+        max-width:700px;
+        border-radius:12px;
+        box-shadow:0 20px 60px rgba(0,0,0,.3);
+        animation:slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity:0;
+        transform:translateY(-30px);
+      }
+      to {
+        opacity:1;
+        transform:translateY(0);
+      }
+    }
+
+    .close {
+        color:#9ca3af;
+        float:right;
+        font-size:32px;
+        font-weight:bold;
+        line-height:24px;
+        cursor:pointer;
+        transition:color .15s;
+    }
+
+    .close:hover,
+    .close:focus {
+        color:var(--ink);
+    }
+
+    .modal h2 {
+        margin:0 0 24px;
+        font-size:28px;
+        font-weight:900;
+        color:var(--ink);
+        letter-spacing:-.5px;
+    }
+
+    .modal p {
+        font-size:16px;
+        color:var(--muted);
+        line-height:1.75;
+        margin-bottom:20px;
+    }
+
+    .modal ul {
+        margin:0 0 24px 24px;
+        font-size:15px;
+        color:var(--muted);
+        line-height:1.8;
+    }
+
+    .modal ul li {
+        margin-bottom:12px;
+    }
+
+    .modal ul ul {
+        margin-top:8px;
+        margin-bottom:0;
+    }
+
+    .modal strong {
+        color:var(--ink);
+        font-weight:700;
+    }
+
+    .modal .highlight-box {
+        background:rgba(249,115,22,.08);
+        border-left:4px solid var(--accent);
+        padding:16px 20px;
+        border-radius:6px;
+        margin-top:24px;
+    }
+
+    .modal .highlight-box p {
+        margin:0;
+        color:var(--ink);
+        font-weight:600;
+    }
+
+    /* ===== 响应式 ===== */
+    @media (max-width:900px){
+      .hero-section h1{font-size:32px;}
+      .hero-section p{font-size:16px;}
+      .modal-content{
+        width:90%;
+        padding:32px 24px;
+      }
+      iframe{height:500px;}
+    }
+    </style>
+
+</head>
+
+<body>
+
+<!-- 顶部导航栏 -->
+<div class="topnav">
+  <div class="nav-inner">
+    <a class="brand" href="index.html">HCMC Climate Risk Assessment</a>
+
+    <div class="nav-links">
+      <a href="story.html">Risk Assessment Story</a>
+
+      <div class="dropdown" tabindex="0">
+        <button type="button">Hazards ▾</button>
+        <div class="menu">
+          <a href="flood.html">Flood Risk</a>
+          <a href="subsidence.html">Subsidence</a>
+          <a href="temperature.html">Surface Temperature</a>
+          <a href="exposure.html">Air Quality & Exposure</a>
+        </div>
+      </div>
+      
+      <a href="dashboard.html">Risk Dashboard</a>
+      <a href="crowdsourcing.html" class="active">Crowdsourcing</a>
+      <a href="conclusion.html" class="nav-cta">Conclusion</a>
+    </div>
+  </div>
+</div>
+
+<!-- 主内容区域 -->
+<div class="main-container">
+  
+  <!-- Hero Section -->
+  <div class="hero-section">
+    <h1>Community Climate Risk Reports</h1>
+    <p>
+      Help us build a comprehensive picture of climate risks in Ho Chi Minh City. Share your observations on flooding events, heat stress, air quality concerns, and land subsidence in your neighborhood. Your local knowledge strengthens citywide climate resilience planning.
+    </p>
+    <button class="open-modal-btn" id="openModal">How to Submit a Report</button>
+  </div>
+
+  <!-- 地图容器 -->
+  <div class="map-container">
+    <h2>Interactive Climate Risk Map</h2>
+    <iframe src="https://hcmcclimaterisk.ushahidi.io/map" allowfullscreen></iframe>
+  </div>
+
+</div>
+
+<!-- Modal弹出窗口 -->
+<div id="myModal" class="modal">
+  <div class="modal-content">
+    <span class="close" id="closeModal">&times;</span>
+    <h2>Submit a Climate Risk Report</h2>
+    <p>Thank you for contributing to HCMC's climate resilience! Here's how you can share your observations:</p>
+    <ul>
+      <li><strong>Mark a location</strong>: Click on the map to pinpoint where you experienced the climate risk.</li>
+      <li><strong>Select risk type</strong>:
+        <ul>
+          <li>Flooding (street flooding, drainage issues, water depth)</li>
+          <li>Heat stress (outdoor work exposure, inadequate cooling)</li>
+          <li>Air quality (pollution sources, visibility, health impacts)</li>
+          <li>Land subsidence (ground cracking, building tilt, infrastructure damage)</li>
+        </ul>
+      </li>
+      <li><strong>Provide details</strong>:
+        <ul>
+          <li>When did this occur? (date and time)</li>
+          <li>How severe was the impact? (1-5 scale)</li>
+          <li>Who was affected? (residents, workers, infrastructure)</li>
+          <li>What actions were taken?</li>
+        </ul>
+      </li>
+      <li><strong>Upload photos</strong> (optional, max 5MB) - Visual evidence helps planners understand local conditions.</li>
+      <li><strong>Suggest solutions</strong> - What infrastructure or policy changes could reduce this risk?</li>
+    </ul>
+    <div class="highlight-box">
+      <p>🌿 Your reports directly inform urban planning decisions. Together we build a more resilient Ho Chi Minh City!</p>
+    </div>
+  </div>
+</div>
+
+<!-- 控制弹出窗口JS -->
+<script>
+const modal = document.getElementById("myModal");
+const btn = document.getElementById("openModal");
+const span = document.getElementById("closeModal");
+
+btn.onclick = function() {
+  modal.style.display = "block";
+}
+span.onclick = function() {
+  modal.style.display = "none";
+}
+window.onclick = function(event) {
+  if (event.target == modal) {
+    modal.style.display = "none";
+  }
+}
+</script>
+
+</body>
+</html>

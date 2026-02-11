@@ -1,0 +1,983 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>HCMC · Subsidence</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <link href="https://api.tiles.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
+
+  <script src="https://unpkg.com/intersection-observer@0.12.0/intersection-observer.js"></script>
+  <script src="https://unpkg.com/scrollama"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#0a0a0a;--ink:#f5f5f5;--muted:#a1a1aa;--line:#27272a;--soft:#18181b;
+      --accent:#f97316;--max:1400px;--navH:56px;--cardR:4px;
+      --shadow:0 20px 60px rgba(0,0,0,.6);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:"Inter", -apple-system, system-ui, sans-serif;
+      color:var(--ink);background:var(--bg);
+      -webkit-font-smoothing:antialiased;overflow-x:hidden;
+      padding-top:var(--navH);
+    }
+    a{color:inherit;text-decoration:none}
+
+    .topnav{
+      position:fixed;top:0;width:100%;z-index:9999;
+      background:rgba(10,10,10,.98);backdrop-filter:blur(16px);
+      border-bottom:1px solid var(--line);height:var(--navH);
+      display:flex;align-items:center;
+    }
+    .nav-inner{
+      width:100%;max-width:var(--max);margin:0 auto;padding:0 24px;
+      display:flex;align-items:center;justify-content:space-between;
+    }
+    .brand{font-weight:900;font-size:15px;letter-spacing:-.3px;color:#ffffff;}
+    .nav-links{
+      display:flex;align-items:center;gap:4px;
+      font-size:13.5px;font-weight:600;
+    }
+    .nav-links a{
+      padding:8px 14px;border-radius:8px;transition:all .15s;color:#e5e5e7;
+    }
+    .nav-links a:hover{background:var(--soft)}
+    .nav-links a.active{background:var(--accent);color:#fff;}
+    .nav-cta{
+      background:#ffffff !important;color:#0a0a0a !important;margin-left:8px !important;
+    }
+    .nav-cta:hover{background:#f5f5f5 !important}
+
+    .dropdown{position:relative}
+    .dropdown > button{
+      border:0;background:transparent;cursor:pointer;
+      padding:8px 14px;border-radius:8px;font:inherit;font-weight:600;
+      color:#e5e5e7;transition:all .15s;
+    }
+    .dropdown > button:hover{background:var(--soft)}
+    .menu{
+      position:absolute;top:100%;left:0;min-width:240px;
+      background:#18181b;border:1px solid var(--line);border-radius:12px;
+      padding:8px;box-shadow:var(--shadow);display:none;margin-top:6px;
+    }
+    .menu a{
+      display:block;padding:10px 12px;border-radius:8px;font-weight:600;
+      font-size:13.5px;transition:all .15s;color:#e5e5e7;
+    }
+    .menu a:hover{background:#27272a}
+    .menu a.active{background:var(--accent);color:#fff;}
+    .dropdown:focus-within .menu{display:block}
+
+    #map{
+      position:fixed;top:var(--navH);left:0;
+      width:100vw;height:calc(100vh - var(--navH));z-index:0;
+    }
+
+    .layer-control{
+      position:fixed;top:calc(var(--navH) + 20px);right:20px;z-index:5;
+      background:rgba(10,10,10,.92);border:1px solid rgba(249,115,22,.3);
+      border-radius:8px;padding:16px 18px 14px;backdrop-filter:blur(20px);
+      box-shadow:var(--shadow);width:200px;
+      opacity:0;pointer-events:none;transition:opacity .3s ease;
+    }
+    .layer-control.visible{opacity:1;pointer-events:auto;}
+    .layer-control h4{
+      font-size:12px;text-transform:uppercase;letter-spacing:1px;
+      color:var(--accent);font-weight:900;margin-bottom:12px;
+    }
+    .layer-toggle{
+      display:flex;align-items:center;gap:10px;
+      padding:8px 0;cursor:pointer;user-select:none;
+    }
+    .layer-toggle:hover .toggle-btn{opacity:0.8;}
+    .toggle-btn{
+      width:16px;height:16px;border-radius:3px;cursor:pointer;
+      border:2px solid rgba(255,255,255,.3);display:flex;
+      align-items:center;justify-content:center;transition:all .2s;
+    }
+    .toggle-btn.checked{background:var(--accent);border-color:var(--accent);}
+    .toggle-btn.checked::after{
+      content:'✓';color:#fff;font-size:11px;font-weight:900;
+    }
+    .layer-toggle label{
+      font-size:13px;font-weight:600;color:#e5e5e7;cursor:pointer;
+      display:flex;align-items:center;gap:8px;flex:1;
+    }
+    .layer-dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
+
+    .section-divider{
+      position:relative;z-index:3;max-width:1200px;
+      margin:0 auto 80px;padding:0 24px;pointer-events:none;
+    }
+    .section-divider-inner{text-align:center;}
+    .section-divider h2{
+      font-size:28px;font-weight:900;line-height:1.25;
+      margin-bottom:10px;color:var(--ink);
+    }
+    .section-divider h2 em{font-style:normal;color:var(--accent);}
+    .section-divider p{
+      font-size:14px;line-height:1.7;color:var(--muted);
+      max-width:820px;margin:0 auto;
+    }
+
+    #opening-story{
+      position:relative;z-index:2;pointer-events:none;padding:12vh 0 80vh;
+    }
+    .opening-step{
+      pointer-events:auto;width:min(460px,92vw);
+      margin:0 6vw 0 auto;opacity:.18;transition:opacity .25s ease;
+    }
+    .opening-step.active{opacity:1;}
+    .opening-card{
+      background:rgba(10,10,10,.75);border:1px solid rgba(249,115,22,.25);
+      border-radius:var(--cardR);box-shadow:var(--shadow);
+      padding:26px 26px 24px;backdrop-filter:blur(20px);
+    }
+    .opening-card h2{
+      font-size:15px;text-transform:uppercase;letter-spacing:1.2px;
+      font-weight:900;margin:0 0 14px;color:var(--accent);
+    }
+    .opening-card p{font-size:14.5px;line-height:1.65;color:#d4d4d8;}
+    .opening-card p b{color:var(--ink);font-weight:700;}
+
+    #static-analysis{
+      position:relative;z-index:3;background:transparent;
+      padding:80px 0 60px;min-height:100vh;
+    }
+    .analysis-container{
+      display:flex;justify-content:flex-end;
+      max-width:100%;margin:0 auto;padding:0 32px;
+    }
+    .analysis-sidebar{
+      position:fixed;z-index:4;left:20px;bottom:20px;
+      width:340px;max-width:calc(100vw - 40px);
+      transition:opacity .3s,transform .3s;
+      opacity:0;transform:translateY(20px);pointer-events:none;
+    }
+    .analysis-sidebar.visible{opacity:1;transform:translateY(0);pointer-events:auto;}
+    .analysis-content{max-width:520px;width:100%;}
+
+    .analysis-section{
+      margin-bottom:46px;background:rgba(10,10,10,.82);
+      border:1px solid rgba(249,115,22,.3);border-radius:var(--cardR);
+      padding:22px 26px;backdrop-filter:blur(18px);box-shadow:var(--shadow);
+    }
+    .analysis-section h3{
+      font-size:15px;text-transform:uppercase;letter-spacing:1.2px;
+      font-weight:900;margin:0 0 12px;color:var(--accent);
+    }
+    .analysis-section p{
+      font-size:13.5px;line-height:1.65;color:#e5e5e7;margin-bottom:12px;
+    }
+    .analysis-section p:last-child{margin-bottom:0}
+    .analysis-section img{
+      width:100%;border-radius:var(--cardR);border:1px solid var(--line);
+      box-shadow:0 12px 32px rgba(0,0,0,.6);display:block;cursor:pointer;
+      transition:transform .25s ease;margin-top:14px;background:#fff;
+    }
+    .analysis-section img:hover{transform:scale(1.02);}
+
+    #sankey-section{
+      position:relative;z-index:1;min-height:100vh;
+      display:flex;align-items:center;justify-content:center;
+      padding:10vh 24px;background:var(--bg);
+    }
+    .sankey-container{
+      position:relative;z-index:2;max-width:1200px;width:100%;
+      background:rgba(10,10,10,.88);border:1px solid var(--line);
+      border-radius:var(--cardR);padding:44px 40px 36px;box-shadow:var(--shadow);
+    }
+    .sankey-header{text-align:center;margin-bottom:22px;}
+    .sankey-header h2{
+      font-size:28px;font-weight:900;line-height:1.25;margin-bottom:10px;color:var(--ink);
+    }
+    .sankey-header h2 em{font-style:normal;color:#3b82f6;}
+    .sankey-header p{
+      font-size:14px;line-height:1.7;color:var(--muted);
+      max-width:820px;margin:0 auto;
+    }
+
+    .sankey-col-labels{
+      display:flex;justify-content:space-between;
+      font-size:11px;font-weight:800;text-transform:uppercase;
+      letter-spacing:1px;color:var(--muted);
+      margin:18px 0 10px;padding:0 90px;
+    }
+
+    .sankey-tools{
+      display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:8px 0 14px;
+    }
+    .chip{
+      border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);
+      color:#e5e5e7;font-weight:700;font-size:12.5px;
+      padding:8px 12px;border-radius:999px;cursor:pointer;
+      transition:all .15s ease;user-select:none;
+    }
+    .chip:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.22);}
+    .chip.active{background:rgba(59,130,246,.14);border-color:rgba(59,130,246,.35);color:#bfdbfe;}
+
+    .sankey-legend{
+      display:flex;justify-content:center;flex-wrap:wrap;gap:16px;
+      margin-top:16px;padding-top:16px;border-top:1px solid var(--line);
+    }
+    .sankey-legend-item{
+      display:flex;align-items:center;gap:8px;
+      font-size:11.5px;font-weight:700;color:var(--muted);
+    }
+    .sankey-legend-item .sw{
+      width:14px;height:14px;border-radius:3px;display:inline-block;
+    }
+
+    .sankey-insight{
+      margin-top:16px;padding:18px;
+      background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.22);
+      border-radius:var(--cardR);
+    }
+    .sankey-insight p{font-size:13.5px;line-height:1.75;color:#d4d4d8;}
+    .sankey-insight b{color:#3b82f6;font-weight:800;}
+
+    #sankey-tooltip{
+      position:absolute;background:rgba(10,10,10,.95);
+      border:1px solid #3b82f6;border-radius:8px;padding:10px 12px;
+      font-size:12px;font-weight:700;color:#fff;pointer-events:none;
+      opacity:0;box-shadow:0 10px 30px rgba(0,0,0,.7);
+      transition:opacity .2s ease;z-index:10;
+    }
+    #sankey-tooltip.show{opacity:1;}
+
+    .floating-legend{
+      position:fixed;z-index:4;left:20px;bottom:20px;
+      background:rgba(10,10,10,.80);border:1px solid rgba(249,115,22,.25);
+      border-radius:var(--cardR);padding:18px 18px 16px;box-shadow:var(--shadow);
+      width:340px;max-width:calc(100vw - 40px);
+      transition:opacity .3s,transform .3s;backdrop-filter:blur(20px);
+    }
+    .floating-legend.hidden{opacity:0;transform:translateY(20px);pointer-events:none;}
+    .legend-title{
+      font-size:12px;text-transform:uppercase;letter-spacing:1px;
+      font-weight:900;margin:0 0 10px;color:var(--accent);
+    }
+    .chip{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:7px 10px;border-radius:999px;
+      border:1px solid rgba(255,255,255,0.10);
+      background:rgba(255,255,255,0.02);
+      font-weight:700;color:#e5e5e7;white-space:nowrap;
+    }
+    .dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
+
+    .float-legend{
+      position:fixed;bottom:32px;left:32px;z-index:5;
+      background:rgba(10,10,10,.92);border:1px solid rgba(249,115,22,.25);
+      border-radius:var(--cardR);padding:18px 20px 16px;
+      box-shadow:var(--shadow);min-width:220px;
+      opacity:0;pointer-events:none;transition:opacity .3s ease;
+      backdrop-filter:blur(20px);
+    }
+    .float-legend.show{opacity:1;pointer-events:auto}
+    .float-legend h4{
+      font-size:12px;font-weight:700;text-transform:uppercase;
+      letter-spacing:.7px;color:var(--accent);margin-bottom:12px;
+    }
+    .lg-item{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+    .lg-item:last-child{margin-bottom:0}
+    .lg-swatch{width:18px;height:18px;border-radius:3px;flex-shrink:0;}
+    .lg-label{font-size:11px;color:#d4d4d8;font-weight:600;}
+    .lg-note{font-size:10px;color:var(--muted);margin-top:8px;line-height:1.4;}
+
+    #interactive-story{
+      position:relative;z-index:2;pointer-events:none;padding:8vh 0 100vh;
+    }
+    .interactive-step{
+      pointer-events:auto;width:min(580px,92vw);
+      margin:0 0 70vh 6vw;opacity:.18;transition:opacity .25s ease;
+    }
+    .interactive-step.active{opacity:1;}
+    .interactive-step.righty{margin-left:calc(100vw - min(580px,92vw) - 6vw);}
+    .interactive-card{
+      background:rgba(10,10,10,.75);border:1px solid rgba(249,115,22,.25);
+      border-radius:var(--cardR);box-shadow:var(--shadow);
+      padding:22px 22px 20px;backdrop-filter:blur(20px);
+    }
+    .interactive-card h3{
+      font-size:15px;text-transform:uppercase;letter-spacing:1.2px;
+      font-weight:900;margin:0 0 12px;color:var(--accent);
+    }
+    .interactive-card p{font-size:14.5px;line-height:1.65;color:#d4d4d8;margin-bottom:12px;}
+    .interactive-card p:last-child{margin-bottom:0}
+    .interactive-card p b{color:var(--ink);font-weight:700;}
+
+    @keyframes pathGlow{
+      0%,100%{filter:drop-shadow(0 0 4px currentColor) brightness(1.15);}
+      50%{filter:drop-shadow(0 0 9px currentColor) brightness(1.35);}
+    }
+
+    @media (max-width:900px){
+      .opening-step,.interactive-step{margin:0 auto 60vh;width:min(540px,92vw);}
+      .interactive-step.righty{margin-left:auto;margin-right:auto;}
+      .floating-legend{width:320px;}
+      .layer-control{width:160px;}
+    }
+  </style>
+</head>
+
+<body>
+  <!-- NAV -->
+  <div class="topnav">
+    <div class="nav-inner">
+      <a class="brand" href="index.html">HCMC Climate Risk Assessment</a>
+      <div class="nav-links">
+        <a href="story.html">Risk Assessment Story</a>
+        <div class="dropdown" tabindex="0">
+          <button type="button">Hazards ▾</button>
+          <div class="menu">
+            <a href="flood.html">Flood Risk</a>
+            <a href="subsidence.html" class="active">Subsidence</a>
+            <a href="temperature.html">Surface Temperature</a>
+            <a href="exposure.html">Air Quality &amp; Exposure</a>
+          </div>
+        </div>
+        <a href="crowdsourcing.html">Crowdsourcing</a>
+        <a href="dashboard.html">Risk Dashboard</a>
+        <a href="conclusion.html" class="nav-cta">Conclusion</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="map"></div>
+
+  <div class="layer-control" id="layerControl">
+    <h4>MAP LAYERS</h4>
+    <div class="layer-toggle" onclick="toggleLayer('subsidence')">
+      <div class="toggle-btn checked" id="btn-subsidence"></div>
+      <label><span class="layer-dot" style="background:#ff8c42"></span>Subsidence</label>
+    </div>
+    <div class="layer-toggle" onclick="toggleLayer('precipitation')">
+      <div class="toggle-btn" id="btn-precipitation"></div>
+      <label><span class="layer-dot" style="background:#60a5fa"></span>Precip.</label>
+    </div>
+    <div class="layer-toggle" onclick="toggleLayer('elevation')">
+      <div class="toggle-btn" id="btn-elevation"></div>
+      <label><span class="layer-dot" style="background:#22c55e"></span>Elevation</label>
+    </div>
+    <div class="layer-toggle" onclick="toggleLayer('density')">
+      <div class="toggle-btn" id="btn-density"></div>
+      <label><span class="layer-dot" style="background:#eab308"></span>Density</label>
+    </div>
+  </div>
+
+  <div id="opening-story">
+    <div class="section-divider">
+      <div class="section-divider-inner">
+        <h2>Subsidence · <em>slow violence in the delta</em></h2>
+        <p>Ground subsidence operates on geological time — millimeters per year — yet its cumulative effects reshape urban vulnerability with surprising speed.</p>
+      </div>
+    </div>
+
+    <div class="opening-step active" id="sub_open">
+      <div class="opening-card">
+        <h2>GROUND SINKING, RISKS COMPOUNDING</h2>
+        <p>
+          For delta cities like HCMC, subsidence doesn't merely lower ground elevation; it <b>fundamentally alters hydraulic gradients</b>, 
+          prolongs inundation durations, and compounds flood hazards in ways that conventional risk assessments often underestimate.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div id="static-analysis">
+    <div class="analysis-container">
+      <div class="analysis-sidebar">
+        <div class="floating-legend" id="staticLegend">
+          <div class="legend-title">SUBSIDENCE · CLUSTER TYPES</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            <span class="chip"><span class="dot" style="background:#ef4444"></span> HH</span>
+            <span class="chip"><span class="dot" style="background:#f59e0b"></span> LH</span>
+            <span class="chip"><span class="dot" style="background:#60a5fa"></span> LL</span>
+            <span class="chip"><span class="dot" style="background:#facc15"></span> HL</span>
+            <span class="chip"><span class="dot" style="background:#9ca3af"></span> Not Sig.</span>
+          </div>
+          <div style="margin-top:10px;font-size:12px;color:#a1a1aa;line-height:1.55;">
+            <b>HH</b> = high subsidence clustered. <b>LL</b> = low with low. <b>HL/LH</b> are spatial outliers.
+          </div>
+        </div>
+      </div>
+      <div class="analysis-content" id="static-sections">
+        <div class="analysis-section">
+          <h3>ANALYTICAL FRAMEWORK</h3>
+          <p><b>Global Moran's I</b> quantifies spatial clustering. <b>LISA</b> identifies where clusters occur: HH (hotspots), LL (stable zones), HL/LH (outliers).</p>
+        </div>
+
+        <div class="analysis-section">
+          <h3>GLOBAL PATTERN</h3>
+          <p>Moran's I ≈ 0.47 (p &lt; 0.001) indicates <b>structural clustering</b>. Large contiguous patches suggest systemic drivers: groundwater extraction, compressible sediment, urban loading.</p>
+          <img src="asset/Morian map sub.png" alt="Moran map" loading="lazy">
+        </div>
+
+        <div class="analysis-section">
+          <h3>BIVARIATE: SUBSIDENCE × ELEVATION</h3>
+          <p>HH clusters mark areas where subsidence accelerates in low-lying zones — creating <b>drainage traps</b> where stormwater evacuation becomes increasingly difficult.</p>
+          <img src="asset/Lisa(SUB and ELEV).png" alt="LISA subsidence elevation" loading="lazy">
+        </div>
+
+        <div class="analysis-section">
+          <h3>BIVARIATE: SUBSIDENCE × PRECIPITATION</h3>
+          <p>HH clusters represent <b>double-stressed zones</b> where both geophysical and meteorological pressures converge. Hydraulic loading, runoff amplification, infrastructure stress.</p>
+          <img src="asset/Lisa(SUB and PREC).png" alt="LISA subsidence precipitation" loading="lazy">
+        </div>
+
+        <div class="analysis-section">
+          <h3>BIVARIATE: SUBSIDENCE × POPULATION</h3>
+          <p>HH clusters translate geophysical hazard into <b>social vulnerability</b>. Priority for structural retrofitting, infrastructure upgrades, community-based early warning.</p>
+          <img src="asset/Lisa(Subsidence and Population).png" alt="LISA subsidence population" loading="lazy">
+        </div>
+
+        <div class="analysis-section">
+          <h3>SYNTHESIS</h3>
+          <p><b>Key findings:</b> (1) Hazard structure is spatially coherent — systemic drivers require regional-scale interventions. (2) Risk coupling: subsidence interacts multiplicatively with low elevation and high precipitation.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="sankey-section">
+    <div class="sankey-container">
+      <div class="sankey-header">
+        <h2>Subsidence system · <em>drivers → processes → impacts</em></h2>
+        <p>
+          Subsidence risk in HCMC stems from multiple interacting drivers: groundwater extraction, 
+          rapid urbanization, compressible delta sediments, and natural compaction — each amplifying 
+          the rate and extent of ground lowering.
+        </p>
+      </div>
+
+      <div class="sankey-col-labels">
+        <span>Drivers</span>
+        <span>Subsidence Processes</span>
+        <span>Impacts</span>
+      </div>
+
+      <div class="sankey-tools" aria-label="Sankey filters">
+        <button class="chip active" data-filter="all">All flows</button>
+        <button class="chip" data-filter="groundwater">Groundwater extraction</button>
+        <button class="chip" data-filter="urbanization">Rapid urbanization</button>
+        <button class="chip" data-filter="geology">Delta geology</button>
+      </div>
+
+      <svg id="sankey-svg" viewBox="0 0 1100 460"></svg>
+
+      <div class="sankey-legend">
+        <div class="sankey-legend-item"><span class="sw" style="background:#64748b"></span>Drivers</div>
+        <div class="sankey-legend-item"><span class="sw" style="background:#3b82f6"></span>Subsidence processes</div>
+        <div class="sankey-legend-item"><span class="sw" style="background:#f97316"></span>Impacts</div>
+      </div>
+
+      <div class="sankey-insight">
+        <p>
+          <b>Why subsidence persists:</b> repeated ground lowering concentrates where <b>groundwater extraction</b>, 
+          <b>compressible delta sediments</b>, and <b>structural loading from dense urban development</b> overlap — 
+          especially in areas lacking piped water infrastructure and enforcement of extraction limits.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div id="interactive-story">
+    <div class="interactive-step active" id="sub_map_1">
+      <div class="interactive-card">
+        <h3>HAZARD LAYER: SUBSIDENCE AS BASELINE</h3>
+        <p>Observe the spatial coherence: large contiguous patches, not scattered noise. This structure suggests systemic drivers operating at regional scales.</p>
+      </div>
+    </div>
+
+    <div class="interactive-step righty" id="sub_map_2">
+      <div class="interactive-card">
+        <h3>COUPLING 1: SUBSIDENCE + PRECIPITATION</h3>
+        <p>Overlaying precipitation reveals <b>stress concentration zones</b> — areas where ground lowering coincides with high rainfall loading.</p>
+      </div>
+    </div>
+
+    <div class="interactive-step" id="sub_map_3">
+      <div class="interactive-card">
+        <h3>COUPLING 2: SUBSIDENCE + ELEVATION</h3>
+        <p>Adding elevation profiles illuminates <b>hydraulic criticality</b>: where subsidence occurs in low terrain, drainage gradients flatten below functional thresholds.</p>
+      </div>
+    </div>
+
+    <div class="interactive-step righty" id="sub_map_4">
+      <div class="interactive-card">
+        <h3>COUPLING 3: SUBSIDENCE + POPULATION DENSITY</h3>
+        <p>Population density translates physical hazard into <b>social consequence</b>. Where subsidence hotspots overlap dense residential zones, welfare losses concentrate.</p>
+      </div>
+    </div>
+
+    <div class="interactive-step" id="sub_map_5">
+      <div class="interactive-card">
+        <h3>SYSTEM-RISK ZONES</h3>
+        <p><b>Prioritize zones where:</b> (1) Subsidence clusters spatially, (2) Low elevation or high precipitation amplifies drainage stress, (3) Population density indicates high exposure.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="float-legend" id="leg-elevation">
+    <h4>ELEVATION (DEM)</h4>
+    <div class="lg-item"><div class="lg-swatch" style="background:#5fa3d2"></div><span class="lg-label">≤ 2m</span></div>
+    <div class="lg-item"><div class="lg-swatch" style="background:#86c9b1"></div><span class="lg-label">2 - 5m</span></div>
+    <div class="lg-item"><div class="lg-swatch" style="background:#b0e397"></div><span class="lg-label">5 - 7m</span></div>
+    <div class="lg-item"><div class="lg-swatch" style="background:#d7f17e"></div><span class="lg-label">7 - 10m</span></div>
+    <div class="lg-item"><div class="lg-swatch" style="background:#fef976"></div><span class="lg-label">10 - 13m</span></div>
+    <div class="lg-item"><div class="lg-swatch" style="background:#fed574"></div><span class="lg-label">13 - 16m</span></div>
+    <div class="lg-item"><div class="lg-swatch" style="background:#feb071"></div><span class="lg-label">16 - 19m</span></div>
+    <div class="lg-item"><div class="lg-swatch" style="background:#fd8b6e"></div><span class="lg-label">19 - 21m</span></div>
+    <div class="lg-item"><div class="lg-swatch" style="background:#f2686b"></div><span class="lg-label">21 - 24m</span></div>
+    <div class="lg-item"><div class="lg-swatch" style="background:#d94968"></div><span class="lg-label">&gt; 24m</span></div>
+    <div class="lg-note">Digital Elevation Model</div>
+  </div>
+
+  <div class="float-legend" id="leg-subsidence">
+    <h4>SUBSIDENCE</h4>
+    <div class="lg-item"><div class="lg-swatch" style="background:#d2552c"></div><span class="lg-label">≤ -52 mm/yr</span></div>
+    <div class="lg-item"><div class="lg-swatch" style="background:#f47741"></div><span class="lg-label">-52 to -36</span></div>
+    <div class="lg-item"><div class="lg-swatch" style="background:#fd9a66"></div><span class="lg-label">-36 to -19</span></div>
+    <div class="lg-item"><div class="lg-swatch" style="background:#fdbc95"></div><span class="lg-label">-19 to -3</span></div>
+    <div class="lg-item"><div class="lg-swatch" style="background:#fddec4"></div><span class="lg-label">&gt; -3 mm/yr</span></div>
+    <div class="lg-note">Negative = sinking</div>
+  </div>
+
+  <div class="float-legend" id="leg-density">
+    <h4>POPULATION DENSITY</h4>
+    <div style="height:80px;background:linear-gradient(to top,#fd9352,#c8312d);border-radius:3px;margin-bottom:8px;"></div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);">
+      <span>6,121 /km²</span>
+      <span>34,118 /km²</span>
+    </div>
+    <div class="lg-note">Population per km²</div>
+  </div>
+
+  <div id="sankey-tooltip"></div>
+
+  <script>
+    mapboxgl.accessToken = "pk.eyJ1IjoiaGV4aW55aTA1MjEiLCJhIjoiY203dTdydmxmMDFndTJycXN3cHkybHY5cCJ9.vZZQOhyDe4mJUqD1YnuySQ";
+
+    const ALWAYS_ON = ["hcmc-city","hcmc-districtsname","hcmc-districts"];
+    const GROUPS = {
+      subsidence: ["hcmc-subsidence"],
+      precipitation: ["hcmc-precip"],
+      elevation: ["hcmc-elevation"],
+      density: ["hcmc-density"],
+      base: ALWAYS_ON
+    };
+
+    const layerStates = {
+      subsidence: true,
+      precipitation: false,
+      elevation: false,
+      density: false
+    };
+
+    const map = new mapboxgl.Map({
+      container: "map",
+      style: "mapbox://styles/hexinyi0521/cml83pqg1000o01qz5gw3bz4i",
+      center: [106.68, 10.74],
+      zoom: 9.6,
+      bearing: 0,
+      pitch: 0,
+      interactive: true,
+      fadeDuration: 0
+    });
+
+    map.scrollZoom.disable();
+    map.dragPan.disable();
+    map.dragRotate.disable();
+    map.doubleClickZoom.disable();
+    map.boxZoom.disable();
+    map.keyboard.disable();
+    map.touchZoomRotate.disable();
+
+    function safeSetVisibility(layerId, visible){
+      if(!map.getLayer(layerId)) return false;
+      try{
+        map.setLayoutProperty(layerId, "visibility", visible ? "visible" : "none");
+        return true;
+      }catch(err){
+        return false;
+      }
+    }
+
+    function setGroupVisibility(groupName, visible){
+      const ids = GROUPS[groupName] || [];
+      ids.forEach(id => {
+        if(ALWAYS_ON.includes(id)) return;
+        safeSetVisibility(id, visible);
+      });
+    }
+
+    function applyBaseAlwaysOn(){
+      (GROUPS.base || ALWAYS_ON).forEach(id => safeSetVisibility(id, true));
+    }
+
+    function updateLayerVisibility(){
+      applyBaseAlwaysOn();
+      Object.keys(layerStates).forEach(name => setGroupVisibility(name, layerStates[name]));
+    }
+
+    function updateToggleButtons(){
+      Object.keys(layerStates).forEach(name => {
+        const btn = document.getElementById(`btn-${name}`);
+        if(btn) btn.classList.toggle("checked", !!layerStates[name]);
+      });
+    }
+
+    window.toggleLayer = function(name){
+      if(!(name in layerStates)) return;
+      layerStates[name] = !layerStates[name];
+      updateLayerVisibility();
+      updateToggleButtons();
+    };
+
+    function autoShowLayers(layerNames){
+      const set = new Set(layerNames || []);
+      Object.keys(layerStates).forEach(name => layerStates[name] = set.has(name));
+      updateLayerVisibility();
+      updateToggleButtons();
+    }
+
+    function updateLegends(legendNames){
+      ["leg-elevation","leg-subsidence","leg-density"].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.classList.remove("show");
+      });
+      (legendNames || []).forEach(name => {
+        const el = document.getElementById(`leg-${name}`);
+        if(el) el.classList.add("show");
+      });
+    }
+
+    const openingScroller = scrollama();
+    const interactiveScroller = scrollama();
+    const staticSidebar = document.querySelector(".analysis-sidebar");
+    const layerControl = document.getElementById("layerControl");
+
+    let activeInteractiveId = null;
+
+    const interactiveChapters = [
+      {id: "sub_map_1", showLayers: ["subsidence"], showLayerLegends: ["subsidence"], location: {center: [106.68, 10.74], zoom: 10.0}},
+      {id: "sub_map_2", showLayers: ["subsidence", "precipitation"], showLayerLegends: ["subsidence"], location: {center: [106.70, 10.72], zoom: 10.2}},
+      {id: "sub_map_3", showLayers: ["subsidence", "elevation"], showLayerLegends: ["elevation", "subsidence"], location: {center: [106.67, 10.70], zoom: 10.3}},
+      {id: "sub_map_4", showLayers: ["subsidence", "density"], showLayerLegends: ["density", "subsidence"], location: {center: [106.69, 10.77], zoom: 10.15}},
+      {id: "sub_map_5", showLayers: ["subsidence", "elevation", "density"], showLayerLegends: [], location: {center: [106.68, 10.74], zoom: 9.9}}
+    ];
+
+    map.on("load", () => {
+      const allStyleLayers = (map.getStyle().layers || []).map(l => l.id);
+      allStyleLayers.forEach(id => safeSetVisibility(id, false));
+
+      applyBaseAlwaysOn();
+      updateLayerVisibility();
+      updateToggleButtons();
+
+      openingScroller
+        .setup({ step: ".opening-step", offset: 0.6 })
+        .onStepEnter(resp => {
+          document.querySelectorAll(".opening-step").forEach(s => s.classList.remove("active"));
+          resp.element.classList.add("active");
+          staticSidebar.classList.remove("visible");
+          layerControl.classList.remove("visible");
+          layerStates.subsidence = true;
+          updateLayerVisibility();
+          updateToggleButtons();
+          updateLegends(["subsidence"]);
+        });
+
+      const staticObserver = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if(entry.isIntersecting){
+            staticSidebar.classList.add("visible");
+            layerControl.classList.remove("visible");
+            layerStates.subsidence = true;
+            layerStates.precipitation = false;
+            layerStates.elevation = false;
+            layerStates.density = false;
+            updateLayerVisibility();
+            updateToggleButtons();
+            updateLegends([]);
+          } else {
+            staticSidebar.classList.remove("visible");
+          }
+        });
+      }, { threshold: 0.15 });
+      staticObserver.observe(document.getElementById("static-analysis"));
+
+      interactiveScroller
+        .setup({ step: ".interactive-step", offset: 0.58 })
+        .onStepEnter(resp => {
+          const chap = interactiveChapters.find(x => x.id === resp.element.id);
+          if(!chap || activeInteractiveId === chap.id) return;
+          activeInteractiveId = chap.id;
+
+          document.querySelectorAll(".interactive-step").forEach(s => s.classList.remove("active"));
+          resp.element.classList.add("active");
+
+          staticSidebar.classList.remove("visible");
+          layerControl.classList.add("visible");
+
+          if(chap.showLayers){
+            autoShowLayers(chap.showLayers);
+          }else{
+            autoShowLayers(["subsidence"]);
+          }
+
+          if(chap.showLayerLegends){
+            updateLegends(chap.showLayerLegends);
+          }else{
+            updateLegends(["subsidence"]);
+          }
+
+          map.flyTo({
+            center: chap.location.center,
+            zoom: chap.location.zoom,
+            bearing: 0,
+            pitch: 0,
+            duration: 1200,
+            essential: true
+          });
+        });
+
+      window.addEventListener("resize", () => {
+        openingScroller.resize();
+        interactiveScroller.resize();
+      });
+    });
+
+    // ===== Subsidence Sankey =====
+    (function(){
+      const svg = d3.select('#sankey-svg');
+      const tooltip = d3.select('#sankey-tooltip');
+
+      const COLORS = {
+        driver: '#64748b',
+        process: '#3b82f6',
+        impact: '#f97316'
+      };
+
+      const nodes = [
+        // Drivers (layer 0)
+        {id:0, name:'Groundwater\nExtraction\n(800k m³/day)', layer:0, value:24, color:COLORS.driver, tag:['groundwater']},
+        {id:1, name:'Compressible\nDelta\nSediments', layer:0, value:18, color:COLORS.driver, tag:['geology']},
+        {id:2, name:'Rapid\nUrbanization\n& Loading', layer:0, value:20, color:COLORS.driver, tag:['urbanization']},
+        {id:3, name:'Natural\nCompaction', layer:0, value:12, color:COLORS.driver, tag:['geology']},
+
+        // Processes (layer 1)
+        {id:4, name:'Aquifer\nDepletion\n& Collapse', layer:1, value:22, color:COLORS.process, tag:['groundwater']},
+        {id:5, name:'Soil\nConsolidation', layer:1, value:20, color:COLORS.process, tag:['geology']},
+        {id:6, name:'Structural\nLoading\nEffects', layer:1, value:18, color:COLORS.process, tag:['urbanization']},
+
+        // Impacts (layer 2)
+        {id:7,  name:'Drainage\nCapacity\nReduction', layer:2, value:22, color:COLORS.impact, tag:['groundwater','geology']},
+        {id:8,  name:'Foundation\nDamage\n& Cracking', layer:2, value:18, color:COLORS.impact, tag:['urbanization']},
+        {id:9,  name:'Flood\nAmplification', layer:2, value:20, color:COLORS.impact, tag:['groundwater','geology']},
+        {id:10, name:'Infrastructure\nFailure', layer:2, value:14, color:COLORS.impact, tag:['urbanization']}
+      ];
+
+      const links = [
+        // Drivers -> Processes
+        {s:0, t:4, v:16, tag:'groundwater'},
+        {s:0, t:5, v:8,  tag:'groundwater'},
+
+        {s:1, t:5, v:12, tag:'geology'},
+        {s:1, t:4, v:6,  tag:'geology'},
+
+        {s:2, t:6, v:14, tag:'urbanization'},
+        {s:2, t:5, v:6,  tag:'urbanization'},
+
+        {s:3, t:5, v:8,  tag:'geology'},
+
+        // Processes -> Impacts
+        {s:4, t:7, v:12, tag:'groundwater'},
+        {s:4, t:9, v:10, tag:'groundwater'},
+
+        {s:5, t:7, v:10, tag:'geology'},
+        {s:5, t:9, v:10, tag:'geology'},
+
+        {s:6, t:8, v:12, tag:'urbanization'},
+        {s:6, t:10, v:6, tag:'urbanization'}
+      ];
+
+      const W = 1100, H = 460, nodeW = 28, pad = 16;
+      const mar = {t:24, b:20, l:96, r:96};
+      const availH = H - mar.t - mar.b;
+      const colX = [mar.l, W/2 - nodeW/2, W - mar.r - nodeW];
+
+      const layers = [[],[],[]];
+      nodes.forEach(n => layers[n.layer].push(n));
+
+      layers.forEach(ln => {
+        const tot = ln.reduce((a,n)=>a+n.value,0);
+        const sc  = (availH - pad*(ln.length-1)) / tot;
+        let yy = mar.t;
+        ln.forEach(n => {
+          n.x = colX[n.layer];
+          n.y = yy;
+          n.h = n.value * sc;
+          n._sOff = 0;
+          n._tOff = 0;
+          yy += n.h + pad;
+        });
+      });
+
+      function calcRibbon(set){
+        set.forEach(l => {
+          const src = nodes[l.s], tgt = nodes[l.t];
+          const sh = (l.v / src.value) * src.h;
+          const th = (l.v / tgt.value) * tgt.h;
+          l._p = {
+            sx: src.x + nodeW,
+            sy0: src.y + src._sOff,
+            sy1: src.y + src._sOff + sh,
+            tx: tgt.x,
+            ty0: tgt.y + tgt._tOff,
+            ty1: tgt.y + tgt._tOff + th
+          };
+          src._sOff += sh;
+          tgt._tOff += th;
+        });
+      }
+
+      nodes.forEach(n=>{ n._sOff=0; n._tOff=0; });
+      calcRibbon(links.filter(l => nodes[l.s].layer===0).sort((a,b)=>a.s-b.s||a.t-b.t));
+      calcRibbon(links.filter(l => nodes[l.s].layer===1).sort((a,b)=>a.s-b.s||a.t-b.t));
+
+      function ribbonD(l){
+        const {sx,sy0,sy1,tx,ty0,ty1} = l._p;
+        const mx = (sx + tx) / 2;
+        return `M${sx},${sy0} C${mx},${sy0} ${mx},${ty0} ${tx},${ty0} L${tx},${ty1} C${mx},${ty1} ${mx},${sy1} ${sx},${sy1} Z`;
+      }
+
+      svg.attr('viewBox', `0 0 ${W} ${H}`);
+      svg.selectAll('*').remove();
+
+      const gLinks = svg.append('g');
+
+      const linkSel = gLinks.selectAll('path')
+        .data(links)
+        .enter()
+        .append('path')
+        .attr('d', ribbonD)
+        .attr('fill', d => nodes[d.s].color)
+        .attr('opacity', 0.22)
+        .attr('stroke', 'none')
+        .style('transition','all .25s ease')
+        .on('mouseover', function(e, d){
+          d3.select(this)
+            .attr('opacity', 0.78)
+            .style('animation','pathGlow 1.4s infinite');
+          const s = nodes[d.s].name.replaceAll('\n',' ');
+          const t = nodes[d.t].name.replaceAll('\n',' ');
+          tooltip.html(`<b>${s}</b> → <b>${t}</b><br>${d.v} weight`)
+            .style('left', (e.pageX + 14) + 'px')
+            .style('top', (e.pageY - 12) + 'px')
+            .classed('show', true);
+        })
+        .on('mouseout', function(){
+          d3.select(this).attr('opacity', 0.22).style('animation','none');
+          tooltip.classed('show', false);
+        });
+
+      const gNodes = svg.append('g').selectAll('g')
+        .data(nodes)
+        .enter()
+        .append('g');
+
+      gNodes.append('rect')
+        .attr('x', d=>d.x)
+        .attr('y', d=>d.y)
+        .attr('width', nodeW)
+        .attr('height', d=>d.h)
+        .attr('fill', d=>d.color)
+        .attr('rx', 4)
+        .style('filter','drop-shadow(0 2px 4px rgba(0,0,0,0.35))')
+        .style('transition','all .25s ease')
+        .on('mouseover', function(e, d){
+          d3.select(this)
+            .style('filter', `drop-shadow(0 6px 16px ${d.color}) brightness(1.2)`)
+            .attr('width', nodeW+4)
+            .attr('x', d.x-2);
+
+          tooltip.html(`<b>${d.name.replaceAll('\n',' ')}</b><br>${d.value} total`)
+            .style('left', (e.pageX + 14) + 'px')
+            .style('top', (e.pageY - 12) + 'px')
+            .classed('show', true);
+
+          linkSel.attr('opacity', l => (l.s===d.id || l.t===d.id) ? 0.72 : 0.10);
+        })
+        .on('mouseout', function(e, d){
+          d3.select(this)
+            .style('filter','drop-shadow(0 2px 4px rgba(0,0,0,0.35))')
+            .attr('width', nodeW)
+            .attr('x', d.x);
+
+          tooltip.classed('show', false);
+          linkSel.attr('opacity', 0.22);
+        });
+
+      gNodes.append('text')
+        .attr('x', d => d.layer===0 ? d.x-10 : d.x+nodeW+10)
+        .attr('y', d => d.y + d.h/2 - 6)
+        .attr('text-anchor', d => d.layer===0 ? 'end' : 'start')
+        .attr('fill', '#e5e5e7')
+        .attr('font-size', '11px')
+        .attr('font-family', 'Inter')
+        .attr('font-weight', '800')
+        .each(function(d){
+          const parts = d.name.split('\n');
+          const sel = d3.select(this);
+          parts.forEach((t,i)=>{
+            sel.append('tspan')
+              .attr('x', this.getAttribute('x'))
+              .attr('dy', i ? '1.15em' : '0')
+              .text(t);
+          });
+        });
+
+      gNodes.append('text')
+        .attr('x', d => d.layer===0 ? d.x-10 : d.x+nodeW+10)
+        .attr('y', d => d.y + d.h/2 + 18)
+        .attr('text-anchor', d => d.layer===0 ? 'end' : 'start')
+        .attr('fill', '#a1a1aa')
+        .attr('font-size', '10px')
+        .attr('font-family', 'Inter')
+        .attr('font-weight', '700')
+        .text(d => d.value);
+
+      const chips = document.querySelectorAll('.chip');
+      let currentFilter = 'all';
+
+      function applyFilter(f){
+        currentFilter = f;
+        chips.forEach(c => c.classList.toggle('active', c.dataset.filter===f));
+
+        linkSel.each(function(d){
+          const show = (f==='all') ? true : (d.tag===f);
+          d3.select(this)
+            .attr('opacity', show ? 0.30 : 0.06)
+            .style('animation', 'none');
+        });
+      }
+
+      chips.forEach(c => {
+        c.addEventListener('click', () => applyFilter(c.dataset.filter));
+      });
+
+      applyFilter('all');
+    })();
+  </script>
+</body>
+</html>

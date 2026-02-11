@@ -1,0 +1,700 @@
+<!doctype html> 
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Conclusion - HCMC Climate Risk Assessment</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --ink:#0a0a0a;
+      --muted:#52525b;
+      --line:#e4e4e7;
+      --soft:#18181b;
+      --max:1200px;
+      --shadow:0 20px 60px rgba(0,0,0,.08);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:"Inter", -apple-system, system-ui, sans-serif;
+      color:var(--ink);
+      background:var(--bg);
+      -webkit-font-smoothing:antialiased;
+    }
+    a{color:inherit;text-decoration:none}
+
+    /* ===== Navigation ===== */
+    .topnav{
+      position:sticky;
+      top:0;
+      z-index:999;
+      background:rgba(10,10,10,.98);
+      backdrop-filter:blur(12px);
+      border-bottom:1px solid #27272a;
+    }
+    .nav-inner{
+      max-width:var(--max);
+      margin:0 auto;
+      padding:14px 24px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .brand{
+      font-weight:900;
+      font-size:15px;
+      letter-spacing:-.3px;
+      color:#ffffff;
+    }
+    .nav-links{
+      display:flex;
+      align-items:center;
+      gap:4px;
+      font-size:13.5px;
+      font-weight:600;
+    }
+    .nav-links a{
+      padding:8px 14px;
+      border-radius:8px;
+      transition:all .15s;
+      color:#e5e5e7;
+    }
+    .nav-links a:hover{background:var(--soft)}
+    .nav-cta{
+      background:#ffffff !important;
+      color:#0a0a0a !important;
+      margin-left:8px !important;
+    }
+    .nav-cta:hover{background:#f5f5f5 !important}
+
+    .dropdown{position:relative}
+    .dropdown > button{
+      border:0;
+      background:transparent;
+      cursor:pointer;
+      padding:8px 14px;
+      border-radius:8px;
+      font:inherit;
+      font-weight:600;
+      color:#e5e5e7;
+      transition:all .15s;
+    }
+    .dropdown > button:hover{background:var(--soft)}
+    .menu{
+      position:absolute;
+      top:100%;
+      left:0;
+      min-width:240px;
+      background:#18181b;
+      border:1px solid #27272a;
+      border-radius:12px;
+      padding:8px;
+      box-shadow:var(--shadow);
+      display:none;
+      margin-top:6px;
+    }
+    .menu a{
+      display:block;
+      padding:10px 12px;
+      border-radius:8px;
+      font-weight:600;
+      font-size:13.5px;
+      transition:all .15s;
+      color:#e5e5e7;
+    }
+    .menu a:hover{background:#27272a}
+    .dropdown:focus-within .menu{display:block}
+
+    /* ===== Hero Section ===== */
+    .hero{
+      max-width:var(--max);
+      margin:0 auto;
+      padding:80px 24px 40px;
+      text-align:center;
+    }
+    .hero h1{
+      font-size:48px;
+      line-height:1.1;
+      margin:0 0 16px;
+      font-weight:900;
+      letter-spacing:-1px;
+    }
+    .hero p{
+      max-width:720px;
+      margin:0 auto 32px;
+      color:var(--muted);
+      line-height:1.7;
+      font-size:17px;
+    }
+    .hero .subtitle{
+      font-size:13px;
+      letter-spacing:1.2px;
+      text-transform:uppercase;
+      color:#0a0a0a;
+      font-weight:800;
+      opacity:.85;
+      margin-bottom:8px;
+    }
+
+    /* ===== Network Container ===== */
+    .network-section{
+      max-width:var(--max);
+      margin:0 auto;
+      padding:40px 24px 60px;
+    }
+    .network-wrapper{
+      background:#fafafa;
+      border-radius:16px;
+      border:1px solid var(--line);
+      padding:32px;
+      min-height:700px;
+      position:relative;
+    }
+    .network-controls{
+      position:absolute;
+      top:20px;
+      right:20px;
+      display:flex;
+      gap:8px;
+      z-index:10;
+    }
+    .control-btn{
+      padding:8px 14px;
+      border:1.5px solid #0a0a0a;
+      border-radius:8px;
+      background:#fff;
+      font-weight:700;
+      font-size:12px;
+      cursor:pointer;
+      transition:all .2s;
+    }
+    .control-btn:hover{
+      background:#0a0a0a;
+      color:#fff;
+    }
+    .control-btn.active{
+      background:#0a0a0a;
+      color:#fff;
+    }
+
+    #network{
+      width:100%;
+      height:700px;
+      cursor:grab;
+    }
+    #network:active{
+      cursor:grabbing;
+    }
+
+    /* ===== Node Styles ===== */
+    .node{
+      cursor:pointer;
+      transition:all .2s;
+    }
+    .node:hover{
+      filter:brightness(1.1);
+    }
+    .node-label{
+      font-size:12px;
+      font-weight:700;
+      fill:#0a0a0a;
+      pointer-events:none;
+      text-anchor:middle;
+    }
+    .link{
+      stroke:#d4d4d8;
+      stroke-opacity:0.6;
+      stroke-width:2px;
+    }
+    .link.active{
+      stroke:#0a0a0a;
+      stroke-opacity:1;
+      stroke-width:3px;
+    }
+
+    /* ===== Info Panel ===== */
+    .info-panel{
+      max-width:var(--max);
+      margin:0 auto;
+      padding:0 24px 80px;
+    }
+    .info-card{
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:32px;
+      display:none;
+      animation:fadeIn .3s ease-out;
+    }
+    .info-card.active{
+      display:block;
+    }
+    @keyframes fadeIn{
+      from{opacity:0;transform:translateY(10px)}
+      to{opacity:1;transform:translateY(0)}
+    }
+    .info-card h2{
+      font-size:28px;
+      margin:0 0 8px;
+      font-weight:900;
+      letter-spacing:-.5px;
+    }
+    .info-card .category{
+      font-size:12px;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      color:var(--muted);
+      font-weight:800;
+      margin-bottom:24px;
+    }
+    .info-section{
+      margin-bottom:24px;
+    }
+    .info-section h3{
+      font-size:13px;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      font-weight:800;
+      margin:0 0 12px;
+      color:#0a0a0a;
+    }
+    .info-section p{
+      color:var(--muted);
+      line-height:1.7;
+      font-size:15px;
+      margin:0;
+    }
+
+    /* ===== Legend ===== */
+    .legend{
+      position:absolute;
+      bottom:20px;
+      left:20px;
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:16px;
+      font-size:12px;
+    }
+    .legend-title{
+      font-weight:800;
+      margin-bottom:12px;
+      font-size:11px;
+      letter-spacing:1px;
+      text-transform:uppercase;
+    }
+    .legend-item{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin-bottom:8px;
+    }
+    .legend-color{
+      width:16px;
+      height:16px;
+      border-radius:4px;
+    }
+
+    /* ===== Footer ===== */
+    .footer{
+      border-top:1px solid var(--line);
+      padding:32px 24px;
+      color:var(--muted);
+      font-size:13px;
+      text-align:center;
+    }
+    .logos{
+      display:flex;
+      gap:12px;
+      justify-content:center;
+      align-items:center;
+      flex-wrap:wrap;
+      margin-top:16px;
+    }
+    .logo-pill{
+      border:1px solid var(--line);
+      border-radius:999px;
+      padding:6px 14px;
+      font-weight:700;
+      font-size:11.5px;
+      color:#0a0a0a;
+      background:#fff;
+    }
+
+    @media (max-width:900px){
+      .hero h1{font-size:32px;letter-spacing:-.7px}
+      #network{height:500px}
+      .network-wrapper{padding:16px;min-height:500px}
+      .legend{position:static;margin-top:20px}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="topnav">
+    <div class="nav-inner">
+      <a class="brand" href="index.html">HCMC Climate Risk Assessment</a>
+
+      <div class="nav-links">
+        <a href="story.html">Risk Assessment Story</a>
+
+        <div class="dropdown" tabindex="0">
+          <button type="button">Hazards ▾</button>
+          <div class="menu">
+            <a href="flood.html">Flood Risk</a>
+            <a href="subsidence.html">Subsidence</a>
+            <a href="temperature.html">Surface Temperature</a>
+            <a href="exposure.html">Air Quality & Exposure</a>
+          </div>
+        </div>
+
+        <a href="dashboard.html">Risk Dashboard</a>
+        <a href="crowdsourcing.html">Crowdsourcing</a>
+        <a href="conclusion.html" class="nav-cta">Conclusion</a>
+      </div>
+    </div>
+  </div>
+
+  <section class="hero">
+    <div class="subtitle">INTEGRATED METHODOLOGY</div>
+    <h1>Systems-Based Climate Risk Management</h1>
+    <p>
+      Our approach connects monitoring infrastructure, unified data platforms, and response mechanisms across four climate hazards. Click on any node below to explore the integrated framework for subsidence, flooding, air quality, and urban heat.
+    </p>
+  </section>
+
+  <section class="network-section">
+    <div class="network-wrapper">
+      <div class="network-controls">
+        <button class="control-btn active" onclick="resetView()">Reset View</button>
+        <button class="control-btn" onclick="highlightAll()">Show All Links</button>
+      </div>
+      <div id="network"></div>
+      <div class="legend">
+        <div class="legend-title">Node Types</div>
+        <div class="legend-item">
+          <div class="legend-color" style="background:#ef4444"></div>
+          <span>Climate Hazards</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background:#3b82f6"></div>
+          <span>Monitoring Systems</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background:#10b981"></div>
+          <span>Data Platforms</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background:#f59e0b"></div>
+          <span>Response & Implementation</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="info-panel">
+    <div id="info-subsidence" class="info-card">
+      <h2>Subsidence</h2>
+      <div class="category">Land Surface Monitoring</div>
+      
+      <div class="info-section">
+        <h3>Remote Sensing + Ground Monitoring</h3>
+        <p>Establish NSS benchmark network and leveling transects for InSAR calibration, creating a multi-scale observation system that combines satellite and ground-based measurements for accurate subsidence tracking.</p>
+      </div>
+
+      <div class="info-section">
+        <h3>Unified Data Platform</h3>
+        <p>Require major construction projects to submit geological survey data, building a continuously updated database that consolidates subsurface information and enables predictive modeling of settlement patterns.</p>
+      </div>
+
+      <div class="info-section">
+        <h3>Risk Identification & Response</h3>
+        <p>Integrate NSS benchmarks, InSAR data, and disaster prevention systems into a comprehensive early warning framework with centralized data processing and monitoring infrastructure.</p>
+      </div>
+    </div>
+
+    <div id="info-flood" class="info-card">
+      <h2>Flood</h2>
+      <div class="category">Water Level & Drainage Management</div>
+      
+      <div class="info-section">
+        <h3>Remote Sensing + Water Level Monitoring</h3>
+        <p>Deploy NSS benchmarks alongside water level sensors, creating an integrated monitoring network that supports both InSAR calibration and real-time flood detection across the drainage system.</p>
+      </div>
+
+      <div class="info-section">
+        <h3>Unified Data Platform</h3>
+        <p>Connect hydrological stations, water level gauges, and pump station gate systems into a single platform, enabling coordinated dispatch and automated response to changing water conditions.</p>
+      </div>
+
+      <div class="info-section">
+        <h3>Risk Identification & Response</h3>
+        <p>Build an integrated monitoring-processing-warning system that combines real-time data streams with predictive models, supported by centralized control centers and established alert protocols.</p>
+      </div>
+    </div>
+
+    <div id="info-pollution" class="info-card">
+      <h2>Air Pollution</h2>
+      <div class="category">Air Quality Monitoring & Community Engagement</div>
+      
+      <div class="info-section">
+        <h3>Open Monitoring Networks</h3>
+        <p>Emphasize open-source technologies to expand monitoring capacity and coverage, deploying low-cost sensors across underserved areas to capture fine-grained spatial variations in air quality.</p>
+      </div>
+
+      <div class="info-section">
+        <h3>Community Participation</h3>
+        <p>Engage local residents and community groups in monitoring efforts, improving accessibility and transparency while building public awareness and environmental stewardship.</p>
+      </div>
+
+      <div class="info-section">
+        <h3>Unified Data Platform</h3>
+        <p>Develop real-time visualization platforms that display spatiotemporal distribution of pollutants, supporting both regulatory enforcement and public communication about air quality conditions.</p>
+      </div>
+    </div>
+
+    <div id="info-heat" class="info-card">
+      <h2>Urban Heat</h2>
+      <div class="category">Surface Temperature & Heat Mitigation</div>
+      
+      <div class="info-section">
+        <h3>Long-term Landsat Analysis</h3>
+        <p>Conduct multi-decadal Landsat time series studies for Surface Urban Heat Island (SUHI) analysis, tracking thermal patterns and identifying emerging hotspots across the urban fabric.</p>
+      </div>
+
+      <div class="info-section">
+        <h3>Unified Data Platform</h3>
+        <p>Build comprehensive LST/SUHI time series as an "urban health baseline" for trend monitoring and comparative analysis, enabling evidence-based evaluation of heat mitigation strategies.</p>
+      </div>
+
+      <div class="info-section">
+        <h3>Implementation & Mitigation</h3>
+        <p>Combine remote sensing systems with data processing centers and implement passive design codes in building regulations to reduce heat exposure through architectural and urban design interventions.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    Built for HCMC Smart City · Integrated Planning Project · 2026
+    <div class="logos">
+      <span class="logo-pill">NUS</span>
+      <span class="logo-pill">DEP5109</span>
+      <span class="logo-pill">Climate & Natural Systems</span>
+    </div>
+  </footer>
+
+  <script>
+    // Data structure
+    const data = {
+      nodes: [
+        // Hazards (red)
+        {id: "subsidence", label: "Subsidence", group: "hazard", color: "#ef4444", size: 20},
+        {id: "flood", label: "Flood", group: "hazard", color: "#ef4444", size: 20},
+        {id: "pollution", label: "Air Pollution", group: "hazard", color: "#ef4444", size: 20},
+        {id: "heat", label: "Urban Heat", group: "hazard", color: "#ef4444", size: 20},
+        
+        // Monitoring (blue)
+        {id: "insar-nss", label: "InSAR + NSS\nBenchmarks", group: "monitoring", color: "#3b82f6", size: 14},
+        {id: "water-level", label: "Water Level\nSensors", group: "monitoring", color: "#3b82f6", size: 14},
+        {id: "open-sensors", label: "Open Monitoring\nNetworks", group: "monitoring", color: "#3b82f6", size: 14},
+        {id: "landsat", label: "Landsat LST\nTime Series", group: "monitoring", color: "#3b82f6", size: 14},
+        
+        // Data Platform (green)
+        {id: "geo-database", label: "Geological\nDatabase", group: "platform", color: "#10b981", size: 14},
+        {id: "hydro-platform", label: "Hydrological\nPlatform", group: "platform", color: "#10b981", size: 14},
+        {id: "air-viz", label: "Air Quality\nVisualization", group: "platform", color: "#10b981", size: 14},
+        {id: "heat-baseline", label: "Urban Heat\nBaseline", group: "platform", color: "#10b981", size: 14},
+        
+        // Response (orange)
+        {id: "early-warning", label: "Early Warning\nSystem", group: "response", color: "#f59e0b", size: 14},
+        {id: "flood-dispatch", label: "Coordinated\nDispatch", group: "response", color: "#f59e0b", size: 14},
+        {id: "community-engage", label: "Community\nParticipation", group: "response", color: "#f59e0b", size: 14},
+        {id: "passive-design", label: "Passive Design\nCodes", group: "response", color: "#f59e0b", size: 14},
+      ],
+      links: [
+        // Subsidence connections
+        {source: "subsidence", target: "insar-nss"},
+        {source: "subsidence", target: "geo-database"},
+        {source: "subsidence", target: "early-warning"},
+        
+        // Flood connections
+        {source: "flood", target: "insar-nss"},
+        {source: "flood", target: "water-level"},
+        {source: "flood", target: "hydro-platform"},
+        {source: "flood", target: "flood-dispatch"},
+        
+        // Pollution connections
+        {source: "pollution", target: "open-sensors"},
+        {source: "pollution", target: "air-viz"},
+        {source: "pollution", target: "community-engage"},
+        
+        // Heat connections
+        {source: "heat", target: "landsat"},
+        {source: "heat", target: "heat-baseline"},
+        {source: "heat", target: "passive-design"},
+        
+        // Cross-connections
+        {source: "insar-nss", target: "geo-database"},
+        {source: "insar-nss", target: "early-warning"},
+        {source: "water-level", target: "hydro-platform"},
+        {source: "hydro-platform", target: "flood-dispatch"},
+        {source: "open-sensors", target: "air-viz"},
+        {source: "air-viz", target: "community-engage"},
+        {source: "landsat", target: "heat-baseline"},
+        {source: "heat-baseline", target: "passive-design"},
+      ]
+    };
+
+    // Setup
+    const width = document.getElementById('network').clientWidth;
+    const height = 700;
+
+    const svg = d3.select("#network")
+      .append("svg")
+      .attr("width", width)
+      .attr("height", height)
+      .attr("viewBox", [0, 0, width, height]);
+
+    // Add zoom
+    const g = svg.append("g");
+    
+    const zoom = d3.zoom()
+      .scaleExtent([0.5, 3])
+      .on("zoom", (event) => {
+        g.attr("transform", event.transform);
+      });
+    
+    svg.call(zoom);
+
+    // Force simulation
+    const simulation = d3.forceSimulation(data.nodes)
+      .force("link", d3.forceLink(data.links).id(d => d.id).distance(120))
+      .force("charge", d3.forceManyBody().strength(-400))
+      .force("center", d3.forceCenter(width / 2, height / 2))
+      .force("collision", d3.forceCollide().radius(d => d.size + 15));
+
+    // Links
+    const link = g.append("g")
+      .selectAll("line")
+      .data(data.links)
+      .join("line")
+      .attr("class", "link");
+
+    // Nodes
+    const node = g.append("g")
+      .selectAll("g")
+      .data(data.nodes)
+      .join("g")
+      .attr("class", "node")
+      .call(d3.drag()
+        .on("start", dragstarted)
+        .on("drag", dragged)
+        .on("end", dragended))
+      .on("click", (event, d) => {
+        if (d.group === "hazard") {
+          showInfo(d.id);
+          highlightConnections(d);
+        }
+      });
+
+    node.append("circle")
+      .attr("r", d => d.size)
+      .attr("fill", d => d.color)
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 3);
+
+    node.append("text")
+      .attr("class", "node-label")
+      .attr("dy", d => d.size + 18)
+      .selectAll("tspan")
+      .data(d => d.label.split('\n'))
+      .join("tspan")
+      .attr("x", 0)
+      .attr("dy", (d, i) => i ? "1.1em" : 0)
+      .text(d => d);
+
+    // Simulation tick
+    simulation.on("tick", () => {
+      link
+        .attr("x1", d => d.source.x)
+        .attr("y1", d => d.source.y)
+        .attr("x2", d => d.target.x)
+        .attr("y2", d => d.target.y);
+
+      node.attr("transform", d => `translate(${d.x},${d.y})`);
+    });
+
+    // Functions
+    function dragstarted(event) {
+      if (!event.active) simulation.alphaTarget(0.3).restart();
+      event.subject.fx = event.subject.x;
+      event.subject.fy = event.subject.y;
+    }
+
+    function dragged(event) {
+      event.subject.fx = event.x;
+      event.subject.fy = event.y;
+    }
+
+    function dragended(event) {
+      if (!event.active) simulation.alphaTarget(0);
+      event.subject.fx = null;
+      event.subject.fy = null;
+    }
+
+    function showInfo(hazardId) {
+      document.querySelectorAll('.info-card').forEach(card => {
+        card.classList.remove('active');
+      });
+      document.getElementById(`info-${hazardId}`).classList.add('active');
+      
+      // Smooth scroll
+      document.querySelector('.info-panel').scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+
+    function highlightConnections(d) {
+      const connectedNodes = new Set();
+      connectedNodes.add(d.id);
+
+      link
+        .attr("class", l => {
+          if (l.source.id === d.id || l.target.id === d.id) {
+            connectedNodes.add(l.source.id);
+            connectedNodes.add(l.target.id);
+            return "link active";
+          }
+          return "link";
+        })
+        .style("opacity", l => 
+          (l.source.id === d.id || l.target.id === d.id) ? 1 : 0.1
+        );
+
+      node.style("opacity", n => connectedNodes.has(n.id) ? 1 : 0.2);
+    }
+
+    function resetView() {
+      link
+        .attr("class", "link")
+        .style("opacity", 1);
+      node.style("opacity", 1);
+      
+      svg.transition()
+        .duration(750)
+        .call(zoom.transform, d3.zoomIdentity);
+    }
+
+    function highlightAll() {
+      link.attr("class", "link active").style("opacity", 1);
+      node.style("opacity", 1);
+    }
+  </script>
+</body>
+</html>

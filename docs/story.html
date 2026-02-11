@@ -1,0 +1,1099 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>HCMC Climate Risk Story</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+
+  <!-- D3 + Sankey -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#0a0a0a;
+      --ink:#ffffff;
+      --muted:#a1a1aa;
+      --line:#27272a;
+      --soft:#18181b;
+      --accent:#ea580c;
+      --max:1200px;
+      --shadow:0 20px 60px rgba(0,0,0,.3);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:"Inter", -apple-system, system-ui, sans-serif;
+      color:var(--ink);
+      background:var(--bg);
+      -webkit-font-smoothing:antialiased;
+    }
+    a{color:inherit;text-decoration:none}
+
+    /* ===== Navigation ===== */
+    .topnav{
+      position:sticky;
+      top:0;
+      z-index:999;
+      background:rgba(10,10,10,.98);
+      backdrop-filter:blur(12px);
+      border-bottom:1px solid #27272a;
+    }
+    .nav-inner{
+      max-width:var(--max);
+      margin:0 auto;
+      padding:14px 24px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .brand{
+      font-weight:900;
+      font-size:15px;
+      letter-spacing:-.3px;
+      color:#ffffff;
+    }
+    .nav-links{
+      display:flex;
+      align-items:center;
+      gap:4px;
+      font-size:13.5px;
+      font-weight:600;
+    }
+    .nav-links a{
+      padding:8px 14px;
+      border-radius:8px;
+      transition:all .15s;
+      color:#e5e5e7;
+    }
+    .nav-links a:hover{background:var(--soft)}
+    .nav-links a.active{
+      background:#ffffff;
+      color:#0a0a0a;
+    }
+    .nav-cta{
+      background:#ffffff !important;
+      color:#0a0a0a !important;
+      margin-left:8px !important;
+    }
+    .nav-cta:hover{background:#f5f5f5 !important}
+
+    .dropdown{position:relative}
+    .dropdown > button{
+      border:0;
+      background:transparent;
+      cursor:pointer;
+      padding:8px 14px;
+      border-radius:8px;
+      font:inherit;
+      font-weight:600;
+      color:#e5e5e7;
+      transition:all .15s;
+    }
+    .dropdown > button:hover{background:var(--soft)}
+    .menu{
+      position:absolute;
+      top:100%;
+      left:0;
+      min-width:240px;
+      background:#18181b;
+      border:1px solid #27272a;
+      border-radius:12px;
+      padding:8px;
+      box-shadow:var(--shadow);
+      display:none;
+      margin-top:6px;
+    }
+    .menu a{
+      display:block;
+      padding:10px 12px;
+      border-radius:8px;
+      font-weight:600;
+      font-size:13.5px;
+      transition:all .15s;
+      color:#e5e5e7;
+    }
+    .menu a:hover{background:#27272a}
+    .dropdown:focus-within .menu{display:block}
+
+    /* ===== Hero ===== */
+    .band{
+      width:100%;
+      min-height:480px;
+      position:relative;
+      overflow:hidden;
+      background:#000;
+    }
+    .band::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:url("asset/hero_mosaic.png") center/cover;
+      filter:saturate(.95) contrast(1.15) brightness(.88);
+    }
+    .band::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(100deg,
+        rgba(0,0,0,.12) 0%,
+        rgba(0,0,0,.35) 50%,
+        rgba(0,0,0,.58) 100%);
+    }
+    .band-inner{
+      position:relative;
+      z-index:1;
+      max-width:var(--max);
+      margin:0 auto;
+      padding:100px 24px 100px 48px;
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+    }
+    .hero-box{
+      max-width:720px;
+      opacity:0;
+      animation:fadeInUp 1s ease-out .25s forwards;
+      text-align:right;
+      margin-left:auto;
+    }
+    @keyframes fadeInUp {
+      0% {opacity:0; transform:translateY(26px);}
+      100% {opacity:1; transform:translateY(0);}
+    }
+    .hero-title{
+      font-size:52px;
+      line-height:1.08;
+      margin:0 0 18px;
+      font-weight:900;
+      letter-spacing:-1.1px;
+      color:#ffffff;
+      text-shadow:0 4px 24px rgba(0,0,0,.4);
+    }
+    .hero-text{
+      margin:0 0 26px;
+      color:rgba(255,255,255,.94);
+      line-height:1.7;
+      font-size:17px;
+      font-weight:400;
+      max-width:660px;
+      margin-left:auto;
+    }
+    .hero-btn{
+      display:inline-block;
+      font-weight:800;
+      font-size:14px;
+      padding:14px 24px;
+      border-radius:10px;
+      background:#fff;
+      color:#0a0a0a;
+      transition:all .2s;
+      box-shadow:0 4px 16px rgba(255,255,255,.15);
+    }
+    .hero-btn:hover{
+      background:#fafafa;
+      transform:translateY(-2px);
+      box-shadow:0 8px 24px rgba(255,255,255,.2);
+    }
+
+    /* ===== Page sections ===== */
+    .wrap{
+      max-width:var(--max);
+      margin:0 auto;
+      padding:0 24px;
+    }
+    .anchor-pad{scroll-margin-top:92px;}
+    .section{
+      padding:84px 0;
+      border-bottom:1px solid var(--line);
+    }
+    .kicker{
+      font-size:12.5px;
+      letter-spacing:1.3px;
+      text-transform:uppercase;
+      color:var(--accent);
+      font-weight:900;
+      opacity:.92;
+      margin-bottom:10px;
+    }
+    h2{
+      font-size:34px;
+      letter-spacing:-.6px;
+      margin-bottom:14px;
+      line-height:1.18;
+      font-weight:900;
+    }
+    .lead{
+      color:var(--muted);
+      line-height:1.75;
+      font-size:16.5px;
+      max-width:900px;
+    }
+    .grid2{
+      display:grid;
+      grid-template-columns:1.25fr .75fr;
+      gap:26px;
+      margin-top:26px;
+      align-items:start;
+    }
+    .grid2.flip{
+      grid-template-columns:.75fr 1.25fr;
+    }
+    .panel{
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:#18181b;
+      box-shadow:0 10px 30px rgba(0,0,0,.3);
+      overflow:hidden;
+    }
+    .panel-hd{
+      padding:16px 18px;
+      border-bottom:1px solid var(--line);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .panel-hd .title{
+      font-weight:900;
+      letter-spacing:-.2px;
+      font-size:14px;
+    }
+    .pill{
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.6px;
+      text-transform:uppercase;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      color:#ffffff;
+      background:#27272a;
+      white-space:nowrap;
+    }
+    .panel-bd{padding:16px 18px;}
+    .bullets{
+      display:grid;
+      gap:12px;
+      margin-top:6px;
+    }
+    .bullet{
+      border-left:3px solid var(--accent);
+      padding:10px 12px;
+      background:#18181b;
+    }
+    .bullet b{font-weight:900; color:var(--accent);}
+    .bullet p{
+      color:var(--muted);
+      line-height:1.65;
+      font-size:14.5px;
+      margin-top:6px;
+    }
+    .num{color:var(--accent); font-weight:900;}
+
+    /* ===== Sankey area ===== */
+    .viz{
+      padding:10px 12px 16px;
+    }
+    .viz-top{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      padding:0 6px 10px;
+    }
+    .viz-top .note{
+      color:var(--muted);
+      font-size:12.5px;
+      line-height:1.55;
+      max-width:640px;
+    }
+    .viz-tools{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .btn{
+      border:1.5px solid #ffffff;
+      background:#0a0a0a;
+      color:#ffffff;
+      font-weight:900;
+      font-size:12px;
+      padding:9px 12px;
+      border-radius:10px;
+      cursor:pointer;
+      transition:all .16s ease;
+    }
+    .btn:hover{background:#ffffff;color:#0a0a0a;transform:translateY(-1px)}
+    .btn.ghost{
+      border-color:var(--line);
+      color:var(--muted);
+      font-weight:800;
+    }
+    .btn.ghost:hover{background:#27272a;color:#ffffff;border-color:#52525b;transform:none}
+
+    svg{display:block;width:100%;height:auto;}
+    .sankey-wrap{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:10px;
+      background:#18181b;
+    }
+
+    .legend{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:12px;
+      padding:0 6px;
+    }
+    .leg{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-size:12.5px;
+      color:var(--muted);
+      font-weight:700;
+    }
+    .dot{
+      width:10px;height:10px;border-radius:999px;display:inline-block;
+      border:1px solid rgba(0,0,0,.18);
+    }
+
+    /* ===== Overview cards ===== */
+    .tri{
+      display:grid;
+      grid-template-columns:repeat(3, 1fr);
+      gap:18px;
+      margin-top:22px;
+    }
+    .card{
+      border-top:3px solid var(--accent);
+      padding:20px 18px;
+      background:#18181b;
+      border:1px solid var(--line);
+      border-radius:16px;
+      transition:all .18s;
+    }
+    .card:hover{
+      transform:translateY(-2px);
+      box-shadow:0 12px 40px rgba(234,88,12,.15);
+      border-color:var(--accent);
+    }
+    .card h3{
+      margin:0 0 10px;
+      font-size:13px;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      font-weight:900;
+    }
+    .card p{
+      margin:0 0 14px;
+      color:var(--muted);
+      line-height:1.65;
+      font-size:14.5px;
+    }
+    .mini-btn{
+      display:inline-block;
+      font-weight:900;
+      font-size:12.5px;
+      padding:10px 14px;
+      border:1.5px solid #ffffff;
+      border-radius:10px;
+      background:#0a0a0a;
+      transition:all .18s;
+    }
+    .mini-btn:hover{background:#ffffff;color:#0a0a0a;transform:translateY(-1px)}
+    .muted{color:var(--muted)}
+
+    /* ===== Footer ===== */
+    .footer{
+      border-top:1px solid var(--line);
+      padding:32px 24px;
+      color:var(--muted);
+      font-size:13px;
+      text-align:center;
+    }
+    .logos{
+      display:flex;
+      gap:12px;
+      justify-content:center;
+      align-items:center;
+      flex-wrap:wrap;
+      margin-top:16px;
+    }
+    .logo-pill{
+      border:1px solid var(--line);
+      border-radius:999px;
+      padding:6px 14px;
+      font-weight:900;
+      font-size:11.5px;
+      color:#ffffff;
+      background:#18181b;
+    }
+
+    @media (max-width:980px){
+      .hero-title{font-size:38px;letter-spacing:-.8px}
+      .band-inner{padding:90px 24px;justify-content:center}
+      .grid2,.grid2.flip{grid-template-columns:1fr}
+      .tri{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+
+<body>
+  <!-- NAV -->
+  <div class="topnav">
+    <div class="nav-inner">
+      <a class="brand" href="index.html">HCMC Climate Risk Assessment</a>
+
+      <div class="nav-links">
+        <a class="active" href="story.html">Risk Assessment Story</a>
+
+        <div class="dropdown" tabindex="0">
+          <button type="button">Hazards ▾</button>
+          <div class="menu">
+            <a href="flood.html">Flood Risk</a>
+            <a href="subsidence.html">Subsidence</a>
+            <a href="temperature.html">Surface Temperature</a>
+            <a href="exposure.html">Air Quality & Exposure</a>
+          </div>
+        </div>
+
+        <a href="dashboard.html">Risk Dashboard</a>
+        <a href="crowdsourcing.html">Crowdsourcing</a>
+        <a href="conclusion.html" class="nav-cta">Conclusion</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <section class="band">
+    <div class="band-inner">
+      <div class="hero-box">
+        <h1 class="hero-title">Systems Before Maps</h1>
+        <p class="hero-text">
+          HCMC's climate risks compound through shared drivers and fragmented responses. Subsidence lowers ground 
+          elevation, amplifying flood exposure. Dense construction traps heat and pollutants. Monitoring exists but 
+          remains siloed, responses lag, and delivery concentrates in affluent districts. Understanding the system 
+          logic reveals where interventions break and what coordination requires.
+        </p>
+        <a class="hero-btn" href="#systems">Explore system structure</a>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap">
+
+    <!-- SYSTEMS: Drivers -> Impacts -->
+    <section id="systems" class="section anchor-pad">
+      <div class="kicker">SYSTEMS</div>
+      <h2>Drivers→Hazards→Impacts</h2>
+      <p class="lead">
+        Four climate hazards stem from overlapping drivers: groundwater depletion, rapid urbanization, soft deltaic 
+        geology, and intensifying precipitation patterns. Each hazard generates multiple impacts across infrastructure, 
+        mobility, health, and economic productivity. Compounding occurs where risks reinforce each other—subsidence 
+        worsens flooding, heat accelerates air stagnation.
+      </p>
+
+      <div class="grid2">
+        <div class="panel">
+          <div class="panel-hd">
+            <div class="title">System Flow Diagram</div>
+            <span class="pill">Drivers → Hazards → Impacts</span>
+          </div>
+
+          <div class="panel-bd viz">
+            <div class="viz-top">
+              <div class="note">
+                Link thickness indicates relative contribution strength. Convergence points show where multiple 
+                drivers or hazards compound. Click hazard buttons to trace pathways.
+              </div>
+              <div class="viz-tools">
+                <button class="btn" id="btnSysReset">Reset</button>
+                <button class="btn ghost" id="btnSysFocusFlood">Flood</button>
+                <button class="btn ghost" id="btnSysFocusSubs">Subsidence</button>
+                <button class="btn ghost" id="btnSysFocusHeat">Heat</button>
+                <button class="btn ghost" id="btnSysFocusAir">Air</button>
+              </div>
+            </div>
+
+            <div class="sankey-wrap">
+              <svg id="sankeySystems" viewBox="0 0 1100 540" aria-label="Drivers to hazards to impacts"></svg>
+            </div>
+
+            <div class="legend" aria-label="Legend">
+              <div class="leg"><span class="dot" style="background:#64748b"></span>Drivers</div>
+              <div class="leg"><span class="dot" style="background:#3b82f6"></span>Subsidence</div>
+              <div class="leg"><span class="dot" style="background:#06b6d4"></span>Flood</div>
+              <div class="leg"><span class="dot" style="background:#f97316"></span>Heat</div>
+              <div class="leg"><span class="dot" style="background:#dc2626"></span>Air</div>
+              <div class="leg"><span class="dot" style="background:#94a3b8"></span>Impacts</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-hd">
+            <div class="title">Key System Dynamics</div>
+            <span class="pill">Interpretation</span>
+          </div>
+          <div class="panel-bd">
+            <div class="bullets">
+              <div class="bullet">
+                <b>Subsidence as amplifier</b>
+                <p><span class="num">2–8 cm/year</span> ground lowering reduces drainage capacity, raises relative sea level, and stresses 
+                foundations. <span class="num">70%</span> of built-up area affected.</p>
+              </div>
+              <div class="bullet">
+                <b>Flood as system stress test</b>
+                <p><span class="num">160+</span> communities experience routine inundation. Transport disruption cascades through supply chains. 
+                Aging drainage infrastructure fails during compound rainfall-tide events.</p>
+              </div>
+              <div class="bullet">
+                <b>Heat-pollution feedback</b>
+                <p><span class="num">3–5°C</span> urban-rural temperature differential increases cooling demand while thermal inversion traps 
+                vehicle emissions (<span class="num">9.6M vehicles, 86% motorcycles</span>).</p>
+              </div>
+              <div class="bullet">
+                <b>Urbanization as driver multiplier</b>
+                <p>Impervious surface expansion, groundwater extraction (<span class="num">800,000 m³/day</span>), and building density 
+                intensify all four hazards simultaneously.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DELIVERY: Data -> Response -> Delivery gaps -->
+    <section id="overview" class="section anchor-pad">
+      <div class="kicker">DATA → RESPONSE → DELIVERY</div>
+      <h2>Where smart interventions stall</h2>
+      <p class="lead">
+        HCMC has deployed sensor networks, predictive models, and automated systems. Implementation quality varies: 
+        monitoring concentrates in core districts, data remains fragmented across agencies, and maintenance funding 
+        follows project cycles rather than operational needs. Gaps compound across the data-response-delivery chain.
+      </p>
+
+      <div class="grid2 flip">
+        <div class="panel">
+          <div class="panel-hd">
+            <div class="title">Critical Gap Patterns</div>
+            <span class="pill">Recurring failures</span>
+          </div>
+          <div class="panel-bd">
+            <div class="bullets">
+              <div class="bullet">
+                <b>Coverage inequality</b>
+                <p>Sensors cluster in affluent areas. Informal settlements and peri-urban zones lack real-time 
+                monitoring. Subsidence monitoring covers <span class="num">&lt;30%</span> of at-risk zones.</p>
+              </div>
+              <div class="bullet">
+                <b>Data fragmentation</b>
+                <p>Water, geology, construction, and environmental data remain siloed. No integrated platform links 
+                groundwater extraction to subsidence rates or compound flood forecasts.</p>
+              </div>
+              <div class="bullet">
+                <b>Response lag and ambiguity</b>
+                <p>Flood warnings lack depth, duration, or safe route guidance. Pump automation in old districts lags 
+                tides by <span class="num">1–2 hours</span>. Heat-pollution thresholds don't trigger coordinated action.</p>
+              </div>
+              <div class="bullet">
+                <b>Implementation asymmetry</b>
+                <p>Sponge city projects and upgraded drainage concentrate in new developments. Old core areas retain 
+                aging pipes, <span class="num">&lt;5%</span> permeable surface. Enforcement rate for restrictions: <span class="num">~40%</span>.</p>
+              </div>
+            </div>
+
+            <div style="margin-top:16px" class="muted">
+              Explore detailed evidence and spatial patterns in hazard chapters.
+            </div>
+
+            <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+              <a class="mini-btn" href="flood.html">Flood</a>
+              <a class="mini-btn" href="subsidence.html">Subsidence</a>
+              <a class="mini-btn" href="temperature.html">Heat</a>
+              <a class="mini-btn" href="exposure.html">Air</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-hd">
+            <div class="title">Gap Flow Diagram</div>
+            <span class="pill">Data → Response → Delivery</span>
+          </div>
+          <div class="panel-bd viz">
+            <div class="viz-top">
+              <div class="note">
+                Traces how data limitations create response failures, which compound into delivery gaps. Click hazards 
+                to see distinct failure pathways.
+              </div>
+              <div class="viz-tools">
+                <button class="btn" id="btnGapReset">Reset</button>
+                <button class="btn ghost" id="btnGapFlood">Flood</button>
+                <button class="btn ghost" id="btnGapSubs">Subsidence</button>
+                <button class="btn ghost" id="btnGapHeat">Heat</button>
+                <button class="btn ghost" id="btnGapAir">Air</button>
+              </div>
+            </div>
+
+            <div class="sankey-wrap">
+              <svg id="sankeyGaps" viewBox="0 0 1100 580" aria-label="Hazards to data response delivery gaps"></svg>
+            </div>
+
+            <div class="legend">
+              <div class="leg"><span class="dot" style="background:#0ea5e9"></span>Hazards</div>
+              <div class="leg"><span class="dot" style="background:#ef4444"></span>Data gaps</div>
+              <div class="leg"><span class="dot" style="background:#f97316"></span>Response gaps</div>
+              <div class="leg"><span class="dot" style="background:#84cc16"></span>Delivery gaps</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tri" style="margin-top:26px; grid-template-columns:repeat(2, 1fr);">
+        <div class="card">
+          <h3>Subsidence</h3>
+          <p>Requires citywide monitoring network, integrated groundwater-construction data platform, and predictive 
+          control beyond post-hoc extraction limits.</p>
+          <a class="mini-btn" href="subsidence.html">Subsidence chapter</a>
+        </div>
+        <div class="card">
+          <h3>Flood</h3>
+          <p>Needs compound rainfall-tide-subsidence modeling, actionable depth-duration-route warnings, and equitable 
+          drainage infrastructure maintenance.</p>
+          <a class="mini-btn" href="flood.html">Flood chapter</a>
+        </div>
+        <div class="card">
+          <h3>Heat</h3>
+          <p>Demands fine-scale temperature monitoring grids, coordinated energy-transport response protocols, and 
+          affordable cooling implementation beyond premium districts.</p>
+          <a class="mini-btn" href="temperature.html">Heat chapter</a>
+        </div>
+        <div class="card">
+          <h3>Air Quality</h3>
+          <p>Requires PM2.5 source attribution, real-time exposure mapping, and enforcement mechanisms that extend 
+          beyond core monitoring zones.</p>
+          <a class="mini-btn" href="exposure.html">Air & exposure chapter</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- METHOD -->
+    <section id="method" class="section anchor-pad" style="border-bottom:none">
+      <div class="kicker">METHOD</div>
+      <h2>Analytical framework</h2>
+      <p class="lead">
+        This assessment uses a three-stage logic: identify system linkages, map spatial concentration patterns, and 
+        evaluate intervention pathways through the data-response-delivery chain. The framework prioritizes 
+        planning-actionable insights over technical detail.
+      </p>
+
+      <div class="grid2" style="margin-top:22px">
+        <div class="panel">
+          <div class="panel-hd">
+            <div class="title">Evidence Base</div>
+            <span class="pill">Inputs</span>
+          </div>
+          <div class="panel-bd">
+            <div class="bullets">
+              <div class="bullet">
+                <b>Hazard pattern maps</b>
+                <p>Subsidence rates, flood recurrence zones, surface temperature differentials, PM2.5 concentration 
+                hotspots derived from remote sensing and monitoring networks.</p>
+              </div>
+              <div class="bullet">
+                <b>Vulnerability context</b>
+                <p>Elevation, drainage networks, building density, transport corridors, and demographic distribution 
+                to explain exposure patterns.</p>
+              </div>
+              <div class="bullet">
+                <b>Gap analysis</b>
+                <p>Review of monitoring coverage, inter-agency coordination structures, infrastructure investment 
+                patterns, and enforcement mechanisms.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-hd">
+            <div class="title">Application</div>
+            <span class="pill">Use cases</span>
+          </div>
+          <div class="panel-bd">
+            <div class="bullets">
+              <div class="bullet">
+                <b>Planning prioritization</b>
+                <p>Identify districts with compounding risks, assess infrastructure upgrade needs, coordinate 
+                cross-sector interventions.</p>
+              </div>
+              <div class="bullet">
+                <b>Communication</b>
+                <p>Translate technical risk into actionable framing for stakeholders: where exposure concentrates, 
+                why delivery gaps persist, what coordination requires.</p>
+              </div>
+              <div class="bullet">
+                <b>Ground-truthing</b>
+                <p>Integrate crowdsourced reports to validate monitoring blind spots and capture lived experience 
+                beyond sensor coverage.</p>
+              </div>
+            </div>
+
+            <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+              <a class="mini-btn" href="dashboard.html">Risk dashboard</a>
+              <a class="mini-btn" href="crowdsourcing.html">Crowdsourcing</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <footer class="footer">
+    Built for studio narrative and planning communication · 2026
+    <div class="logos">
+      <span class="logo-pill">NUS</span>
+      <span class="logo-pill">DEP5109</span>
+      <span class="logo-pill">Climate & Natural Systems</span>
+    </div>
+  </footer>
+
+  <script>
+    // =========================
+    // Sankey rendering utilities
+    // =========================
+    function renderSankey(svgSelector, graph, opts = {}) {
+      const svg = d3.select(svgSelector);
+      svg.selectAll("*").remove();
+
+      const vb = svg.attr("viewBox").split(" ").map(Number);
+      const W = vb[2], H = vb[3];
+
+      const margin = { top: 14, right: 18, bottom: 14, left: 18 };
+      const width = W - margin.left - margin.right;
+      const height = H - margin.top - margin.bottom;
+
+      const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+      const sankey = d3.sankey()
+        .nodeWidth(opts.nodeWidth ?? 16)
+        .nodePadding(opts.nodePadding ?? 14)
+        .extent([[0, 0], [width, height]])
+        .iterations(32)
+        .nodeId(d => d.name);
+
+      const data = {
+        nodes: graph.nodes.map(d => ({...d})),
+        links: graph.links.map(d => ({...d}))
+      };
+
+      sankey(data);
+
+      // Color function
+      const nodeFill = d => d.color || "#475569";
+      const linkStroke = d => d.color || "rgba(71,85,105,.35)";
+
+      const link = g.append("g")
+        .attr("fill", "none")
+        .selectAll("path")
+        .data(data.links)
+        .join("path")
+        .attr("d", d3.sankeyLinkHorizontal())
+        .attr("stroke", linkStroke)
+        .attr("stroke-opacity", opts.linkOpacity ?? 0.55)
+        .attr("stroke-width", d => Math.max(1.5, d.width))
+        .attr("stroke-linecap", "round")
+        .style("mix-blend-mode", "normal");
+
+      link.append("title")
+        .text(d => `${d.source.name} → ${d.target.name}`);
+
+      const node = g.append("g")
+        .selectAll("g")
+        .data(data.nodes)
+        .join("g")
+        .attr("class", "node");
+
+      node.append("rect")
+        .attr("x", d => d.x0)
+        .attr("y", d => d.y0)
+        .attr("height", d => Math.max(6, d.y1 - d.y0))
+        .attr("width", d => d.x1 - d.x0)
+        .attr("rx", 6)
+        .attr("fill", nodeFill)
+        .attr("stroke", "rgba(255,255,255,.3)")
+        .attr("stroke-width", 1);
+
+      node.append("text")
+        .attr("x", d => (d.x0 < width / 2) ? (d.x1 + 10) : (d.x0 - 10))
+        .attr("y", d => (d.y0 + d.y1) / 2)
+        .attr("dy", "0.33em")
+        .attr("text-anchor", d => (d.x0 < width / 2) ? "start" : "end")
+        .attr("font-size", 12.5)
+        .attr("font-weight", 800)
+        .attr("fill", "#ffffff")
+        .text(d => d.name);
+
+      // Column labels
+      if (opts.columns?.length) {
+        const col = g.append("g").attr("opacity", 0.65);
+        opts.columns.forEach(c => {
+          col.append("text")
+            .attr("x", c.x)
+            .attr("y", 8)
+            .attr("text-anchor", "start")
+            .attr("font-size", 11)
+            .attr("font-weight", 900)
+            .attr("letter-spacing", 1.2)
+            .attr("fill", "#a1a1aa")
+            .text(c.label.toUpperCase());
+        });
+      }
+
+      function highlightByNames(namesSet) {
+        node.select("rect")
+          .attr("opacity", d => namesSet.has(d.name) ? 1 : 0.2);
+
+        node.select("text")
+          .attr("opacity", d => namesSet.has(d.name) ? 1 : 0.3);
+
+        link
+          .attr("stroke-opacity", d => (namesSet.has(d.source.name) || namesSet.has(d.target.name)) ? 0.85 : 0.12)
+          .attr("opacity", d => (namesSet.has(d.source.name) || namesSet.has(d.target.name)) ? 1 : 0.25);
+      }
+
+      function reset() {
+        node.select("rect").attr("opacity", 1);
+        node.select("text").attr("opacity", 1);
+        link.attr("stroke-opacity", opts.linkOpacity ?? 0.55).attr("opacity", 1);
+      }
+
+      return { highlightByNames, reset };
+    }
+
+    // =========================
+    // 1) SYSTEMS Sankey data
+    // =========================
+    const systemsGraph = {
+      nodes: [
+        // Drivers (0-6)
+        { name:"Groundwater depletion", color:"#64748b" },
+        { name:"Rapid urbanization", color:"#64748b" },
+        { name:"Soft deltaic geology", color:"#64748b" },
+        { name:"Climate intensification", color:"#64748b" },
+        { name:"Aging drainage systems", color:"#64748b" },
+        { name:"Vehicle fleet growth", color:"#64748b" },
+        { name:"Dense construction", color:"#64748b" },
+
+        // Hazards (7-10)
+        { name:"Land subsidence", color:"#3b82f6" },
+        { name:"Flooding", color:"#06b6d4" },
+        { name:"Urban heat", color:"#f97316" },
+        { name:"Air pollution", color:"#dc2626" },
+
+        // Impacts (11-17)
+        { name:"Transport disruption", color:"#94a3b8" },
+        { name:"Infrastructure damage", color:"#94a3b8" },
+        { name:"Health burden", color:"#94a3b8" },
+        { name:"Economic productivity loss", color:"#94a3b8" },
+        { name:"Water security stress", color:"#94a3b8" },
+        { name:"Energy demand surge", color:"#94a3b8" }
+      ],
+      links: [
+        // Drivers → Subsidence
+        { source:"Groundwater depletion", target:"Land subsidence", value:9, color:"rgba(59,130,246,.65)" },
+        { source:"Soft deltaic geology", target:"Land subsidence", value:7, color:"rgba(59,130,246,.6)" },
+        { source:"Rapid urbanization", target:"Land subsidence", value:6, color:"rgba(59,130,246,.55)" },
+
+        // Drivers → Flooding
+        { source:"Climate intensification", target:"Flooding", value:7, color:"rgba(6,182,212,.65)" },
+        { source:"Rapid urbanization", target:"Flooding", value:6, color:"rgba(6,182,212,.6)" },
+        { source:"Aging drainage systems", target:"Flooding", value:6, color:"rgba(6,182,212,.6)" },
+        { source:"Land subsidence", target:"Flooding", value:8, color:"rgba(59,130,246,.7)" },
+
+        // Drivers → Urban heat
+        { source:"Dense construction", target:"Urban heat", value:8, color:"rgba(249,115,22,.65)" },
+        { source:"Rapid urbanization", target:"Urban heat", value:6, color:"rgba(249,115,22,.6)" },
+        { source:"Climate intensification", target:"Urban heat", value:5, color:"rgba(249,115,22,.55)" },
+
+        // Drivers → Air pollution
+        { source:"Vehicle fleet growth", target:"Air pollution", value:8, color:"rgba(220,38,38,.65)" },
+        { source:"Dense construction", target:"Air pollution", value:5, color:"rgba(220,38,38,.6)" },
+        { source:"Rapid urbanization", target:"Air pollution", value:4, color:"rgba(220,38,38,.55)" },
+        { source:"Urban heat", target:"Air pollution", value:4, color:"rgba(249,115,22,.65)" },
+
+        // Hazards → Impacts
+        { source:"Land subsidence", target:"Infrastructure damage", value:7, color:"rgba(148,163,184,.6)" },
+        { source:"Land subsidence", target:"Water security stress", value:5, color:"rgba(148,163,184,.55)" },
+        { source:"Land subsidence", target:"Economic productivity loss", value:4, color:"rgba(148,163,184,.5)" },
+
+        { source:"Flooding", target:"Transport disruption", value:8, color:"rgba(148,163,184,.65)" },
+        { source:"Flooding", target:"Infrastructure damage", value:6, color:"rgba(148,163,184,.6)" },
+        { source:"Flooding", target:"Health burden", value:5, color:"rgba(148,163,184,.55)" },
+        { source:"Flooding", target:"Economic productivity loss", value:6, color:"rgba(148,163,184,.6)" },
+
+        { source:"Urban heat", target:"Health burden", value:6, color:"rgba(148,163,184,.6)" },
+        { source:"Urban heat", target:"Energy demand surge", value:6, color:"rgba(148,163,184,.6)" },
+        { source:"Urban heat", target:"Economic productivity loss", value:4, color:"rgba(148,163,184,.5)" },
+
+        { source:"Air pollution", target:"Health burden", value:8, color:"rgba(148,163,184,.65)" },
+        { source:"Air pollution", target:"Economic productivity loss", value:5, color:"rgba(148,163,184,.55)" }
+      ]
+    };
+
+    const sys = renderSankey("#sankeySystems", systemsGraph, {
+      nodeWidth: 16,
+      nodePadding: 14,
+      linkOpacity: 0.55,
+      columns: [
+        { x: 8, label:"Drivers" },
+        { x: 430, label:"Hazards" },
+        { x: 820, label:"Impacts" }
+      ]
+    });
+
+    function focusSystems(hazardName){
+      const names = new Set([hazardName]);
+      systemsGraph.links.forEach(l => {
+        if (l.target === hazardName) names.add(l.source);
+        if (l.source === hazardName) names.add(l.target);
+      });
+      sys.highlightByNames(names);
+    }
+
+    document.getElementById("btnSysReset").addEventListener("click", () => sys.reset());
+    document.getElementById("btnSysFocusFlood").addEventListener("click", () => focusSystems("Flooding"));
+    document.getElementById("btnSysFocusSubs").addEventListener("click", () => focusSystems("Land subsidence"));
+    document.getElementById("btnSysFocusHeat").addEventListener("click", () => focusSystems("Urban heat"));
+    document.getElementById("btnSysFocusAir").addEventListener("click", () => focusSystems("Air pollution"));
+
+    // =========================
+    // 2) GAPS Sankey data
+    // =========================
+    const gapsGraph = {
+      nodes: [
+        // Hazards (0-3)
+        { name:"Subsidence", color:"#0ea5e9" },
+        { name:"Flood", color:"#0ea5e9" },
+        { name:"Heat", color:"#0ea5e9" },
+        { name:"Air", color:"#0ea5e9" },
+
+        // Data gaps (4-9)
+        { name:"Coverage inequality", color:"#ef4444" },
+        { name:"Data fragmentation", color:"#ef4444" },
+        { name:"Baseline deficiency", color:"#ef4444" },
+        { name:"Update latency", color:"#ef4444" },
+        { name:"Source ambiguity", color:"#ef4444" },
+
+        // Response gaps (10-14)
+        { name:"Late/non-predictive warnings", color:"#f97316" },
+        { name:"Low actionability", color:"#f97316" },
+        { name:"Agency fragmentation", color:"#f97316" },
+        { name:"Static controls", color:"#f97316" },
+        { name:"No feedback loops", color:"#f97316" },
+
+        // Delivery gaps (15-19)
+        { name:"Infrastructure asymmetry", color:"#84cc16" },
+        { name:"Maintenance deficit", color:"#84cc16" },
+        { name:"Weak enforcement", color:"#84cc16" },
+        { name:"Project-cycle funding", color:"#84cc16" },
+        { name:"Limited affordable options", color:"#84cc16" }
+      ],
+      links: [
+        // Hazards → Data gaps
+        { source:"Subsidence", target:"Coverage inequality", value:6, color:"rgba(239,68,68,.6)" },
+        { source:"Subsidence", target:"Data fragmentation", value:7, color:"rgba(239,68,68,.65)" },
+
+        { source:"Flood", target:"Coverage inequality", value:6, color:"rgba(239,68,68,.6)" },
+        { source:"Flood", target:"Baseline deficiency", value:5, color:"rgba(239,68,68,.55)" },
+        { source:"Flood", target:"Data fragmentation", value:6, color:"rgba(239,68,68,.6)" },
+
+        { source:"Heat", target:"Coverage inequality", value:5, color:"rgba(239,68,68,.55)" },
+        { source:"Heat", target:"Baseline deficiency", value:4, color:"rgba(239,68,68,.5)" },
+
+        { source:"Air", target:"Coverage inequality", value:5, color:"rgba(239,68,68,.55)" },
+        { source:"Air", target:"Update latency", value:5, color:"rgba(239,68,68,.55)" },
+        { source:"Air", target:"Source ambiguity", value:6, color:"rgba(239,68,68,.6)" },
+
+        // Data gaps → Response gaps
+        { source:"Coverage inequality", target:"Late/non-predictive warnings", value:7, color:"rgba(249,115,22,.6)" },
+        { source:"Data fragmentation", target:"Static controls", value:6, color:"rgba(249,115,22,.6)" },
+        { source:"Data fragmentation", target:"Agency fragmentation", value:6, color:"rgba(249,115,22,.6)" },
+        { source:"Baseline deficiency", target:"Late/non-predictive warnings", value:5, color:"rgba(249,115,22,.55)" },
+        { source:"Update latency", target:"Low actionability", value:5, color:"rgba(249,115,22,.55)" },
+        { source:"Source ambiguity", target:"Static controls", value:5, color:"rgba(249,115,22,.55)" },
+        { source:"Source ambiguity", target:"Low actionability", value:4, color:"rgba(249,115,22,.5)" },
+
+        // Response gaps → Delivery gaps
+        { source:"Late/non-predictive warnings", target:"Infrastructure asymmetry", value:5, color:"rgba(132,204,22,.55)" },
+        { source:"Low actionability", target:"Limited affordable options", value:5, color:"rgba(132,204,22,.55)" },
+        { source:"Agency fragmentation", target:"Maintenance deficit", value:6, color:"rgba(132,204,22,.6)" },
+        { source:"Agency fragmentation", target:"Project-cycle funding", value:5, color:"rgba(132,204,22,.55)" },
+        { source:"Static controls", target:"Weak enforcement", value:6, color:"rgba(132,204,22,.6)" },
+        { source:"No feedback loops", target:"Maintenance deficit", value:5, color:"rgba(132,204,22,.55)" },
+        { source:"No feedback loops", target:"Project-cycle funding", value:4, color:"rgba(132,204,22,.5)" }
+      ]
+    };
+
+    const gaps = renderSankey("#sankeyGaps", gapsGraph, {
+      nodeWidth: 16,
+      nodePadding: 14,
+      linkOpacity: 0.52,
+      columns: [
+        { x: 8, label:"Hazards" },
+        { x: 280, label:"Data gaps" },
+        { x: 600, label:"Response gaps" },
+        { x: 890, label:"Delivery gaps" }
+      ]
+    });
+
+    function focusGaps(h) {
+      const names = new Set([h]);
+
+      gapsGraph.links.forEach(l => {
+        if (l.source === h) names.add(l.target);
+      });
+
+      const dataNodes = new Set([...names].filter(n => [
+        "Coverage inequality",
+        "Data fragmentation",
+        "Baseline deficiency",
+        "Update latency",
+        "Source ambiguity"
+      ].includes(n)));
+
+      gapsGraph.links.forEach(l => {
+        if (dataNodes.has(l.source)) names.add(l.target);
+      });
+
+      const responseNodes = new Set([...names].filter(n => [
+        "Late/non-predictive warnings",
+        "Low actionability",
+        "Agency fragmentation",
+        "Static controls",
+        "No feedback loops"
+      ].includes(n)));
+
+      gapsGraph.links.forEach(l => {
+        if (responseNodes.has(l.source)) names.add(l.target);
+      });
+
+      gaps.highlightByNames(names);
+    }
+
+    document.getElementById("btnGapReset").addEventListener("click", () => gaps.reset());
+    document.getElementById("btnGapFlood").addEventListener("click", () => focusGaps("Flood"));
+    document.getElementById("btnGapSubs").addEventListener("click", () => focusGaps("Subsidence"));
+    document.getElementById("btnGapHeat").addEventListener("click", () => focusGaps("Heat"));
+    document.getElementById("btnGapAir").addEventListener("click", () => focusGaps("Air"));
+  </script>
+</body>
+</html>

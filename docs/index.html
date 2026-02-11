@@ -1,0 +1,426 @@
+<!doctype html> 
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>HCMC Climate Risk Assessment</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --ink:#0a0a0a;
+      --muted:#52525b;
+      --line:#e4e4e7;
+      --soft:#18181b;
+      --max:1200px;
+      --shadow:0 20px 60px rgba(0,0,0,.08);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:"Inter", -apple-system, system-ui, sans-serif;
+      color:var(--ink);
+      background:var(--bg);
+      -webkit-font-smoothing:antialiased;
+    }
+    a{color:inherit;text-decoration:none}
+
+    /* ===== 黑色导航栏 ===== */
+    .topnav{
+      position:sticky;
+      top:0;
+      z-index:999;
+      background:rgba(10,10,10,.98);
+      backdrop-filter:blur(12px);
+      border-bottom:1px solid #27272a;
+    }
+    .nav-inner{
+      max-width:var(--max);
+      margin:0 auto;
+      padding:14px 24px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .brand{
+      font-weight:900;
+      font-size:15px;
+      letter-spacing:-.3px;
+      color:#ffffff;
+    }
+    .nav-links{
+      display:flex;
+      align-items:center;
+      gap:4px;
+      font-size:13.5px;
+      font-weight:600;
+    }
+    .nav-links a{
+      padding:8px 14px;
+      border-radius:8px;
+      transition:all .15s;
+      color:#e5e5e7;
+    }
+    .nav-links a:hover{background:var(--soft)}
+    .nav-cta{
+      background:#ffffff !important;
+      color:#0a0a0a !important;
+      margin-left:8px !important;
+    }
+    .nav-cta:hover{background:#f5f5f5 !important}
+
+    .dropdown{position:relative}
+    .dropdown > button{
+      border:0;
+      background:transparent;
+      cursor:pointer;
+      padding:8px 14px;
+      border-radius:8px;
+      font:inherit;
+      font-weight:600;
+      color:#e5e5e7;
+      transition:all .15s;
+    }
+    .dropdown > button:hover{background:var(--soft)}
+    .menu{
+      position:absolute;
+      top:100%;
+      left:0;
+      min-width:240px;
+      background:#18181b;
+      border:1px solid #27272a;
+      border-radius:12px;
+      padding:8px;
+      box-shadow:var(--shadow);
+      display:none;
+      margin-top:6px;
+    }
+    .menu a{
+      display:block;
+      padding:10px 12px;
+      border-radius:8px;
+      font-weight:600;
+      font-size:13.5px;
+      transition:all .15s;
+      color:#e5e5e7;
+    }
+    .menu a:hover{background:#27272a}
+    .dropdown:focus-within .menu{display:block}
+
+    /* ===== Hero Section with Animation ===== */
+    .band{
+      width:100%;
+      min-height:480px;
+      position:relative;
+      overflow:hidden;
+      background:#000;
+    }
+    .band::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:url("asset/hero_mosaic.png") center/cover;
+      filter:saturate(.95) contrast(1.15) brightness(.88);
+    }
+    .band::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(100deg,
+        rgba(0,0,0,.12) 0%,
+        rgba(0,0,0,.35) 50%,
+        rgba(0,0,0,.58) 100%);
+    }
+    .band-inner{
+      position:relative;
+      z-index:1;
+      max-width:var(--max);
+      margin:0 auto;
+      padding:100px 24px 100px 48px;
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+    }
+    .hero-box{
+      max-width:680px;
+      opacity:0;
+      animation:fadeInUp 1s ease-out 0.3s forwards;
+      text-align:right;
+      margin-left:auto;
+    }
+
+    /* ===== 跳入动画 ===== */
+    @keyframes fadeInUp {
+      0% {
+        opacity:0;
+        transform:translateY(30px);
+      }
+      100% {
+        opacity:1;
+        transform:translateY(0);
+      }
+    }
+
+    .hero-title{
+      font-size:56px;
+      line-height:1.08;
+      margin:0 0 20px;
+      font-weight:900;
+      letter-spacing:-1.2px;
+      color:#ffffff;
+      text-shadow:0 4px 24px rgba(0,0,0,.4);
+    }
+    .hero-text{
+      margin:0 0 28px;
+      color:rgba(255,255,255,.94);
+      line-height:1.7;
+      font-size:17px;
+      font-weight:400;
+      max-width:620px;
+      margin-left:auto;
+    }
+    .hero-btn{
+      display:inline-block;
+      font-weight:700;
+      font-size:14px;
+      padding:14px 24px;
+      border-radius:10px;
+      background:#fff;
+      color:#0a0a0a;
+      transition:all .2s;
+      box-shadow:0 4px 16px rgba(255,255,255,.15);
+    }
+    .hero-btn:hover{
+      background:#fafafa;
+      transform:translateY(-2px);
+      box-shadow:0 8px 24px rgba(255,255,255,.2);
+    }
+
+    .section{
+      max-width:var(--max);
+      margin:0 auto;
+      padding:80px 24px;
+      text-align:center;
+    }
+    .section h2{
+      margin:0 0 12px;
+      font-size:13px;
+      letter-spacing:1.2px;
+      text-transform:uppercase;
+      color:#0a0a0a;
+      font-weight:800;
+      opacity:.85;
+    }
+    .section p{
+      max-width:760px;
+      margin:0 auto 24px;
+      color:var(--muted);
+      line-height:1.75;
+      font-size:16.5px;
+    }
+    .mini-btn{
+      display:inline-block;
+      font-weight:700;
+      font-size:13px;
+      padding:11px 18px;
+      border:1.5px solid #0a0a0a;
+      border-radius:10px;
+      background:#fff;
+      transition:all .2s;
+    }
+    .mini-btn:hover{
+      background:#0a0a0a;
+      color:#fff;
+      transform:translateY(-1px);
+    }
+
+    .photo-band{
+      width:100%;
+      height:280px;
+      position:relative;
+      overflow:hidden;
+      background:#000;
+    }
+    .photo-band::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:url("asset/band-1.png") center/cover;
+      filter:saturate(1) contrast(1.1) brightness(.85);
+    }
+    .photo-band::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(180deg, rgba(0,0,0,.4), rgba(0,0,0,.15));
+    }
+    .photo-band.small{height:220px}
+    .photo-band.small::before{background-image:url("asset/band-2.png")}
+
+    .tri{
+      max-width:var(--max);
+      margin:0 auto;
+      padding:80px 24px;
+      display:grid;
+      grid-template-columns:repeat(2, 1fr);
+      gap:24px;
+    }
+    .card{
+      border-top:3px solid #0a0a0a;
+      padding:24px 20px;
+      background:#fff;
+      transition:all .2s;
+    }
+    .card:hover{
+      transform:translateY(-2px);
+      box-shadow:0 12px 40px rgba(0,0,0,.06);
+    }
+    .card h3{
+      margin:0 0 10px;
+      font-size:13px;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      font-weight:800;
+    }
+    .card p{
+      margin:0 0 16px;
+      color:var(--muted);
+      line-height:1.65;
+      font-size:15px;
+    }
+
+    .footer{
+      border-top:1px solid var(--line);
+      padding:32px 24px;
+      color:var(--muted);
+      font-size:13px;
+      text-align:center;
+    }
+    .logos{
+      display:flex;
+      gap:12px;
+      justify-content:center;
+      align-items:center;
+      flex-wrap:wrap;
+      margin-top:16px;
+    }
+    .logo-pill{
+      border:1px solid var(--line);
+      border-radius:999px;
+      padding:6px 14px;
+      font-weight:700;
+      font-size:11.5px;
+      color:#0a0a0a;
+      background:#fff;
+    }
+
+    @media (max-width:900px){
+      .hero-title{font-size:36px;letter-spacing:-.8px}
+      .band-inner{padding:80px 24px;justify-content:center}
+      .tri{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="topnav">
+    <div class="nav-inner">
+      <a class="brand" href="index.html">HCMC Climate Risk Assessment</a>
+
+      <div class="nav-links">
+        <a href="story.html">Risk Assessment Story</a>
+
+        <div class="dropdown" tabindex="0">
+          <button type="button">Hazards ▾</button>
+          <div class="menu">
+            <a href="flood.html">Flood Risk</a>
+            <a href="subsidence.html">Subsidence</a>
+            <a href="temperature.html">Surface Temperature</a>
+            <a href="exposure.html">Air Quality & Exposure</a>
+          </div>
+        </div>
+
+        <a href="dashboard.html">Risk Dashboard</a>
+        <a href="crowdsourcing.html">Crowdsourcing</a>
+        <a href="conclusion.html" class="nav-cta">Conclusion</a>
+      </div>
+    </div>
+  </div>
+
+  <section class="band">
+    <div class="band-inner">
+      <div class="hero-box">
+        <h1 class="hero-title">A Sinking and Exposed City: Climate Stress towards Smarter HCMC</h1>
+        <p class="hero-text">
+          Ho Chi Minh City's climate risks rarely arrive one at a time. Flooding, land subsidence, heat stress, and air
+          quality often build on each other—shaped by low-lying terrain, rapid urban growth, and uneven access to
+          protective infrastructure. This story map shows where these pressures concentrate, and what that means on the
+          ground.
+        </p>
+        <a class="hero-btn" href="story.html">Launch the HCMC Climate Risk Story</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>SYSTEMS FIRST</h2>
+    <p>
+      We start by laying out the connections between hazards: drivers and how one risk can amplify another. 
+    </p>
+    <a class="mini-btn" href="story.html#systems">See the systems view</a>
+  </section>
+
+  <div class="photo-band"></div>
+
+  <section class="section">
+    <h2>CITYWIDE OVERVIEW</h2>
+    <p>
+      We conclude with a citywide snapshot: where trends are shifting, where exposure is highest, and which districts face
+      stacked pressures. Before that, you can explore each hazard chapter in detail.
+    </p>
+    <a class="mini-btn" href="dashboard.html">Go to the overview</a>
+  </section>
+
+  <div class="photo-band small"></div>
+
+  <section class="tri">
+    <div class="card">
+      <h3>Resources</h3>
+      <p>
+        Population and urban density from WorldPop, buildings and infrastructure from OpenStreetMap, land cover from ESA WorldCover, surface temperature from Landsat 8-9, air pollution from Sentinel-5P and NASA, subsidence from Sentinel-1 InSAR, precipitation from CHIRPS, and flood data from JRC Global Surface Water.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>Method</h3>
+      <p>
+        Subsidence tracked via InSAR and ground-based NSS benchmarks. Flood monitoring integrates real-time water levels with drainage networks. Air quality mapped through open monitoring networks with community participation. Urban heat analyzed using long-term Landsat LST series, paired with passive design codes for mitigation.
+      </p>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="band-inner">
+      <div class="hero-box">
+        <h1 class="hero-title">HCMC Climate Risk Assessment</h1>
+        <p class="hero-text">
+          Use this map to identify priority districts, compare hazards side by side, and bring local experience into the
+          picture through crowdsourced reports.
+        </p>
+        <a class="hero-btn" href="crowdsourcing.html">Contribute local reports</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    Built for HCMC Smart City · Integrated Planning Project · 2026
+    <div class="logos">
+      <span class="logo-pill">NUS</span>
+      <span class="logo-pill">DEP5109</span>
+      <span class="logo-pill">Climate & Natural Systems</span>
+    </div>
+  </footer>
+</body>
+</html>
